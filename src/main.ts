@@ -6,7 +6,7 @@ import { spawnBounceSplash, updateSplashes, clearSplashes } from './splash';
 import { render } from './render';
 import { setupGui, toggleGui } from './gui';
 import { startRun, tickRun, getRun } from './run';
-import { updateHud, showEndScreen, showShop } from './hud';
+import { updateHud, showEndScreen, showShop, setFps } from './hud';
 import { awardCurrency } from './upgrades';
 
 const canvas = document.getElementById('stage') as HTMLCanvasElement;
@@ -48,6 +48,10 @@ resetBtn.addEventListener('click', (e) => {
 });
 
 let lastT = performance.now();
+// Sliding-window FPS: cheap and stable, only displayed when debug toggle is on.
+const fpsFrames: number[] = [];
+let fpsUpdateAt = 0;
+
 function loop() {
   const t = performance.now();
   // Cap dt to avoid huge steps after tab switch / minimization. All physics
@@ -80,6 +84,15 @@ function loop() {
   }
 
   render(ctx, W, H);
+
+  // FPS sample (kept cheap whether or not the readout is visible).
+  fpsFrames.push(t);
+  while (fpsFrames.length && t - fpsFrames[0] > 1000) fpsFrames.shift();
+  if (t - fpsUpdateAt > 200) {
+    setFps(fpsFrames.length);
+    fpsUpdateAt = t;
+  }
+
   requestAnimationFrame(loop);
 }
 

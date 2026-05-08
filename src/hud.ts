@@ -41,6 +41,7 @@ export function showEndScreen(result: RunResult, earned: number, onContinue: () 
   endWater.textContent  = `${(result.waterLeft * 100).toFixed(0)}%`;
   endEff.textContent    = `${(result.efficiency * 100).toFixed(0)}%`;
   endEarned.textContent = `+${earned}`;
+  document.body.classList.add('overlay-open');
   endOverlay.classList.add('show');
   endContinue.onclick = () => {
     endOverlay.classList.remove('show');
@@ -48,7 +49,10 @@ export function showEndScreen(result: RunResult, earned: number, onContinue: () 
   };
 }
 
-export function hideEndScreen() { endOverlay.classList.remove('show'); }
+export function hideEndScreen() {
+  endOverlay.classList.remove('show');
+  if (!shopOverlay.classList.contains('show')) document.body.classList.remove('overlay-open');
+}
 
 export function renderShop() {
   shopBalance.textContent = String(getCurrency());
@@ -87,11 +91,20 @@ export function renderShop() {
 
 export function showShop(onStart: () => void) {
   renderShop();
+  document.body.classList.add('overlay-open');
   shopOverlay.classList.add('show');
   shopStart.onclick = () => {
     shopOverlay.classList.remove('show');
+    document.body.classList.remove('overlay-open');
     onStart();
   };
 }
 
-export function hideShop() { shopOverlay.classList.remove('show'); }
+export function hideShop() {
+  shopOverlay.classList.remove('show');
+  if (!endOverlay.classList.contains('show')) document.body.classList.remove('overlay-open');
+}
+
+const fpsEl = $<HTMLDivElement>('fps');
+export function setFpsVisible(v: boolean) { fpsEl.classList.toggle('show', v); }
+export function setFps(fps: number) { fpsEl.textContent = `${fps.toFixed(0)} fps`; }

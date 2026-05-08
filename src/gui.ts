@@ -1,6 +1,8 @@
 import GUI from 'lil-gui';
 import { config } from './config';
 import { initGrid } from './grid';
+import { setFpsVisible } from './hud';
+import { resetSave } from './upgrades';
 
 // Snapshot of the original config — `Reset to defaults` writes this back over
 // the live config object.
@@ -151,6 +153,13 @@ export function setupGui(getW: () => number, getH: () => number) {
   presetsF.add(actions, 'load').name('load preset');
   presetsF.add(actions, 'delete').name('delete preset');
   presetsF.add(actions, 'resetDefaults').name('reset to defaults');
+
+  // --- Debug ---
+  const debugF = gui.addFolder('Debug');
+  debugF.close();
+  const debugState = { showFps: false };
+  debugF.add(debugState, 'showFps').name('show FPS').onChange((v: boolean) => setFpsVisible(v));
+  debugF.add({ wipeSave: () => { resetSave(); } }, 'wipeSave').name('wipe save (currency + upgrades)');
 
   // Suppress unused TS warnings for the controllers we keep references to.
   void nameCtrl;

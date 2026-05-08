@@ -14,6 +14,11 @@ export interface Tile {
 
 export const tiles: Tile[] = [];
 
+// Defensive cap so pathological config (tiny chunks, huge erase radius) can't
+// blow memory before shrink/gravity removes tiles. Generous — well above any
+// reasonable visible count.
+const TILE_HARD_CAP = 1200;
+
 export function spawnFlyingTile(x: number, y: number) {
   // Knock direction: away from the stream's center.
   const dx = x - stream.x;
@@ -30,6 +35,7 @@ export function spawnFlyingTile(x: number, y: number) {
   const inheritY = (stream.vy / streamSpeed) * k * streamSpeed;
 
   const launch = config.tiles.knockBase + Math.random() * config.tiles.knockVar;
+  if (tiles.length >= TILE_HARD_CAP) tiles.shift();
   tiles.push({
     x, y,
     vx: knockX * launch + inheritX,
