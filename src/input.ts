@@ -1,5 +1,6 @@
 import { config } from './config';
 import { stream, applyThrowEdgeSnap } from './stream';
+import { effective } from './effective';
 
 // Pointer input: grab → drag → release. Drag is 1:1 with grab offset preserved
 // so the stream never visually jumps under the finger. On release we compute
@@ -30,7 +31,7 @@ const samples: Sample[] = [];
 export function isHeld() { return held; }
 
 function clampToPlayArea() {
-  const pad = config.stream.eraseRadius * 0.5;
+  const pad = effective.eraseRadius * 0.5;
   const W = getW(), H = getH();
   if (stream.x < pad)     stream.x = pad;
   if (stream.x > W - pad) stream.x = W - pad;
@@ -87,8 +88,8 @@ function onUp() {
   if (sp < config.stream.minThrowSpeed) {
     // Tap-with-no-throw: nudge in a random direction so the stream doesn't sit still.
     const a = Math.random() * Math.PI * 2;
-    stream.vx = Math.cos(a) * config.stream.freeSpeed;
-    stream.vy = Math.sin(a) * config.stream.freeSpeed;
+    stream.vx = Math.cos(a) * effective.freeSpeed;
+    stream.vy = Math.sin(a) * effective.freeSpeed;
   } else {
     const W = getW(), H = getH();
     const snapped = applyThrowEdgeSnap(vx, vy, W, H);

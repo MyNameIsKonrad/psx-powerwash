@@ -5,6 +5,7 @@ import { spawnFlyingTile, updateTiles, clearTiles } from './tiles';
 import { spawnBounceSplash, updateSplashes, clearSplashes } from './splash';
 import { render } from './render';
 import { setupGui, toggleGui } from './gui';
+import { recomputeEffective } from './effective';
 import { startRun, tickRun, getRun } from './run';
 import { updateHud, showEndScreen, showShop, setFps } from './hud';
 import { awardCurrency } from './upgrades';
@@ -61,6 +62,10 @@ function loop() {
   lastT = t;
   if (dt > 0.05) dt = 0.05;
 
+  // Resolve config × upgrade-mods every frame so live tuning AND upgrade
+  // purchases mid-loop are picked up immediately by gameplay code.
+  recomputeEffective();
+
   const run = getRun();
   if (run.state === 'playing') {
     updateStream(dt, W, H, isHeld(), spawnBounceSplash);
@@ -103,6 +108,7 @@ window.addEventListener('resize', () => {
   resetStream(W, H);
 });
 resize();
+recomputeEffective();
 beginNewRun();
 lastT = performance.now();
 loop();

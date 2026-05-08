@@ -1,5 +1,6 @@
-import { config } from './config';
 import { destroyedCount, totalChunks } from './grid';
+import { effective } from './effective';
+import { config } from './config';
 
 // Run loop state machine. Phase 3 only deals with: tank drain while playing,
 // reaching the clean target (win), running out of water (lose), and surfacing
@@ -52,7 +53,7 @@ function buildResult(state: 'won' | 'lost', now: number): RunResult {
 export function tickRun(dt: number, now: number): boolean {
   if (run.state !== 'playing') return false;
 
-  const drainPerSec = (1 / Math.max(0.001, config.run.tankSeconds)) * config.run.drainMultiplier;
+  const drainPerSec = (1 / Math.max(0.001, effective.tankSeconds)) * effective.drainMultiplier;
   run.water = Math.max(0, run.water - drainPerSec * dt);
 
   const cleanedPct = (destroyedCount() / Math.max(1, totalChunks())) * 100;

@@ -26,6 +26,9 @@ export const config = {
   grid: {
     chunkSize: 22,   // px per chunk cell
     chunkGap: 1,     // visual gap inside the cell
+    // Hits required to destroy a chunk. >1 produces a layered "scrubbing"
+    // feel — chunks lighten through the dirt palette before popping.
+    chunkHp: 1,
   },
 
   tiles: {

@@ -73,6 +73,8 @@ export function setupGui(getW: () => number, getH: () => number) {
     .onFinishChange(() => initGrid(getW(), getH()));
   gridF.add(config.grid, 'chunkGap', 0, 6, 1).name('chunk gap')
     .onFinishChange(() => initGrid(getW(), getH()));
+  gridF.add(config.grid, 'chunkHp', 1, 5, 1).name('chunk HP (layers)')
+    .onFinishChange(() => initGrid(getW(), getH()));
 
   // --- Tiles ---
   const tilesF = gui.addFolder('Tiles');

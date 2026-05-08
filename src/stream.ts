@@ -1,4 +1,5 @@
 import { config } from './config';
+import { effective } from './effective';
 
 export interface Stream {
   x: number; y: number;
@@ -11,8 +12,8 @@ export function resetStream(W: number, H: number) {
   stream.x = W / 2;
   stream.y = H / 2;
   const a = Math.random() * Math.PI * 2;
-  stream.vx = Math.cos(a) * config.stream.freeSpeed;
-  stream.vy = Math.sin(a) * config.stream.freeSpeed;
+  stream.vx = Math.cos(a) * effective.freeSpeed;
+  stream.vy = Math.sin(a) * effective.freeSpeed;
 }
 
 // Free-flight integration with DVD-bounce off all four walls. When held
@@ -25,7 +26,7 @@ export function updateStream(
   stream.x += stream.vx * dt;
   stream.y += stream.vy * dt;
 
-  const pad = config.stream.eraseRadius * 0.5;
+  const pad = effective.eraseRadius * 0.5;
   let bounced = false;
   if (stream.x < pad)       { stream.x = pad;       stream.vx =  Math.abs(stream.vx); bounced = true; }
   if (stream.x > W - pad)   { stream.x = W - pad;   stream.vx = -Math.abs(stream.vx); bounced = true; }

@@ -29,8 +29,13 @@ export function spawnSplash(cx: number, cy: number, sizeMul = 1) {
 }
 
 // Five chunkier splashes at the bounce point so wall hits read clearly.
+// Also fire a short haptic tick where supported (Android Chrome; iOS Safari
+// silently no-ops). Bounces are infrequent enough that this won't fatigue.
 export function spawnBounceSplash(x: number, y: number) {
   for (let i = 0; i < 5; i++) spawnSplash(x, y, 1.35);
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    navigator.vibrate(12);
+  }
 }
 
 export function updateSplashes(dt: number) {

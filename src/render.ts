@@ -9,16 +9,33 @@ export function render(ctx: CanvasRenderingContext2D, W: number, H: number) {
   ctx.fillStyle = config.wallColor;
   ctx.fillRect(0, 0, W, H);
 
-  // Standing chunks
-  ctx.fillStyle = '#000000';
+  // Standing chunks. Per-chunk shade comes from remaining HP — at full HP
+  // chunks are pure black "dirt"; partially scrubbed chunks lerp toward a
+  // muddy brown so the player can see they're working through layers.
   const cs = config.grid.chunkSize;
   const drawSize = cs - config.grid.chunkGap;
+  const maxHp = Math.max(1, config.grid.chunkHp | 0);
+  // Endpoints of the dirt gradient. Black = fresh dirt; warm brown = nearly
+  // washed off (chunk about to pop). Picked to read clearly against the
+  // slate wall without becoming neon.
+  const FULL = { r: 0, g: 0, b: 0 };
+  const WORN = { r: 130, g: 86, b: 48 };
+  const colorCache: string[] = [];
+  for (let h = 1; h <= maxHp; h++) {
+    const dmg = (maxHp - h) / Math.max(1, maxHp - 1); // 0 fresh, 1 worn (only for max>1)
+    const t = maxHp === 1 ? 0 : dmg;
+    const cr = Math.round(FULL.r + (WORN.r - FULL.r) * t);
+    const cg = Math.round(FULL.g + (WORN.g - FULL.g) * t);
+    const cb = Math.round(FULL.b + (WORN.b - FULL.b) * t);
+    colorCache[h] = `rgb(${cr},${cg},${cb})`;
+  }
   for (let r = 0; r < grid.rows; r++) {
     const rowBase = r * grid.cols;
     for (let c = 0; c < grid.cols; c++) {
-      if (grid.data[rowBase + c]) {
-        ctx.fillRect(c * cs, r * cs, drawSize, drawSize);
-      }
+      const hp = grid.data[rowBase + c];
+      if (!hp) continue;
+      ctx.fillStyle = colorCache[hp];
+      ctx.fillRect(c * cs, r * cs, drawSize, drawSize);
     }
   }
 
