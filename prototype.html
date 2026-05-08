@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>powerwash v13</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; -webkit-tap-highlight-color: transparent; user-select: none; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #000; overscroll-behavior: none; }
+  #stage { display: block; width: 100vw; height: 100vh; }
+  #reset {
+    position: fixed; top: 12px; right: 12px; z-index: 10;
+    background: rgba(0,0,0,0.4); color: #fff; border: 1px solid rgba(255,255,255,0.3);
+    padding: 8px 14px; border-radius: 999px; font: 500 13px -apple-system, system-ui, sans-serif;
+    backdrop-filter: blur(8px);
+  }
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+<button id="reset">reset</button>
+<script>
+(() => {
+  const canvas = document.getElementById('stage');
+  const ctx = canvas.getContext('2d');
+
+  let W = 0, H = 0, DPR = 1;
+
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = W * DPR;
+    canvas.height = H * DPR;
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    initGrid();
+  }
+
+  // === CHUNK GRID ===
+  const CHUNK_SIZE = 22;
+  const CHUNK_GAP = 1; // visible gap between chunks
+  let cols = 0, rows = 0;
+  let grid = []; // 1 = present, 0 = destroyed (flat array, idx = r*cols + c)
+
+  function initGrid() {
+    cols = Math.ceil(W / CHUNK_SIZE);
+    rows = Math.ceil(H / CHUNK_SIZE);
+    grid = new Uint8Array(cols * rows);
+    grid.fill(1);
+  }
+
+  // === STREAM STATE ===
+  const stream = { x: 0, y: 0, vx: 0, vy: 0 };
+  const FREE_SPEED = 280;
+  const ERASE_RADIUS = 32;
+  const MAX_THROW_SPEED = 1800;
+  const MIN_THROW_SPEED = 120;
+  const VEL_WINDOW_MS = 180;
+  const EDGE_SNAP_DIST = 60;
+  const EDGE_SNAP_TAN = 0.36;
+  const EDGE_SNAP_TAN_FAST = 0.7;
+  const BOUNCE_NUDGE_RAD = 2 * Math.PI / 180;
+
+  function resetStream() {
+    stream.x = W / 2;
+    stream.y = H / 2;
+    const a = Math.random() * Math.PI * 2;
+    stream.vx = Math.cos(a) * FREE_SPEED;
+    stream.vy = Math.sin(a) * FREE_SPEED;
+  }
+
+  // === INPUT ===
+  let held = false;
+  let grabOffsetX = 0, grabOffsetY = 0;
+  const samples = [];
+
+  function now() { return performance.now(); }
+
+  function onDown(x, y) {
+    held = true;
+    grabOffsetX = stream.x - x;
+    grabOffsetY = stream.y - y;
+    samples.length = 0;
+    samples.push({ x, y, t: now() });
+  }
+  function onMove(x, y) {
+    if (!held) return;
+    stream.x = x + grabOffsetX;
+    stream.y = y + grabOffsetY;
+    const pad = ERASE_RADIUS * 0.5;
+    if (stream.x < pad) stream.x = pad;
+    if (stream.x > W - pad) stream.x = W - pad;
+    if (stream.y < pad) stream.y = pad;
+    if (stream.y > H - pad) stream.y = H - pad;
+
+    samples.push({ x, y, t: now() });
+    const cutoff = now() - VEL_WINDOW_MS - 20;
+    while (samples.length > 1 && samples[0].t < cutoff) samples.shift();
+  }
+  function onUp() {
+    if (!held) return;
+    held = false;
+
+    const tNow = now();
+    const cutoff = tNow - VEL_WINDOW_MS;
+    let oldest = samples[0];
+    for (const s of samples) { if (s.t >= cutoff) { oldest = s; break; } }
+    const newest = samples[samples.length - 1];
+    let vx = 0, vy = 0;
+    if (oldest && newest && newest.t > oldest.t) {
+      const dt = (newest.t - oldest.t) / 1000;
+      vx = (newest.x - oldest.x) / dt;
+      vy = (newest.y - oldest.y) / dt;
+    }
+    const sp = Math.hypot(vx, vy);
+    if (sp > MAX_THROW_SPEED) {
+      vx = (vx / sp) * MAX_THROW_SPEED;
+      vy = (vy / sp) * MAX_THROW_SPEED;
+    }
+    if (sp < MIN_THROW_SPEED) {
+      const a = Math.random() * Math.PI * 2;
+      vx = Math.cos(a) * FREE_SPEED;
+      vy = Math.sin(a) * FREE_SPEED;
+    } else {
+      const speed = Math.hypot(vx, vy);
+      const speedRatio = Math.max(0, Math.min(1, (speed - MIN_THROW_SPEED) / (MAX_THROW_SPEED - MIN_THROW_SPEED)));
+      const snapTan = EDGE_SNAP_TAN + speedRatio * (EDGE_SNAP_TAN_FAST - EDGE_SNAP_TAN);
+      const nearTop = stream.y < EDGE_SNAP_DIST;
+      const nearBot = stream.y > H - EDGE_SNAP_DIST;
+      const nearLeft = stream.x < EDGE_SNAP_DIST;
+      const nearRight = stream.x > W - EDGE_SNAP_DIST;
+      if ((nearTop || nearBot) && Math.abs(vy) < Math.abs(vx) * snapTan) {
+        vy = 0; vx = Math.sign(vx) * speed;
+      } else if ((nearLeft || nearRight) && Math.abs(vx) < Math.abs(vy) * snapTan) {
+        vx = 0; vy = Math.sign(vy) * speed;
+      }
+    }
+    stream.vx = vx;
+    stream.vy = vy;
+    samples.length = 0;
+  }
+
+  canvas.addEventListener('touchstart', (e) => { e.preventDefault(); const t = e.touches[0]; onDown(t.clientX, t.clientY); }, { passive: false });
+  canvas.addEventListener('touchmove', (e) => { e.preventDefault(); const t = e.touches[0]; onMove(t.clientX, t.clientY); }, { passive: false });
+  canvas.addEventListener('touchend', (e) => { e.preventDefault(); onUp(); }, { passive: false });
+  canvas.addEventListener('touchcancel', (e) => { e.preventDefault(); onUp(); }, { passive: false });
+  canvas.addEventListener('mousedown', (e) => onDown(e.clientX, e.clientY));
+  window.addEventListener('mousemove', (e) => onMove(e.clientX, e.clientY));
+  window.addEventListener('mouseup', onUp);
+
+  document.getElementById('reset').addEventListener('click', (e) => {
+    e.stopPropagation();
+    initGrid();
+    resetStream();
+  });
+
+  // === PARTICLES ===
+  const particles = [];
+  const tiles = []; // physical tile chunks flying off the wall
+  const splashes = []; // angular water-impact tiles at stream position
+
+  // Splash visual — angular PSX-style water impact
+  const SPLASH_SPAWN_HZ = 50;       // splashes per second while stream is active
+  const SPLASH_LIFE = 0.15;         // sec — short, stiff
+  const SPLASH_START_SIZE = 12;     // px at spawn
+  const SPLASH_END_SIZE = 36;       // px at death
+  const SPLASH_LINE_WIDTH = 2;
+  const SPLASH_JITTER = 14;         // px — random position offset around stream
+  const SPLASH_R = 124, SPLASH_G = 196, SPLASH_B = 255; // light blue stroke
+
+  const TILE_GRAVITY = 2600;     // px/sec^2 — heavy, quick drop
+  const TILE_KNOCK_BASE = 110;   // base knock speed away from stream
+  const TILE_KNOCK_VAR = 55;     // less variance — more uniform breaks
+  const TILE_STREAM_INHERIT = 0.18; // weaker sweep effect — stiffer
+  const TILE_ROT_MAX = 6;        // less spin — stiffer, less floppy
+  const TILE_SHRINK = 2.4;       // shrinkage rate per second — faster disappear
+
+  let splashTimer = 0;
+  function spawnSplash(cx, cy, sizeMul = 1) {
+    const r = Math.random() * SPLASH_JITTER;
+    const a = Math.random() * Math.PI * 2;
+    splashes.push({
+      x: cx + Math.cos(a) * r,
+      y: cy + Math.sin(a) * r,
+      rot: Math.random() * Math.PI * 2,
+      age: 0,
+      sizeMul,
+    });
+  }
+
+  function spawnBounceSplash(x, y) {
+    for (let i = 0; i < 5; i++) spawnSplash(x, y, 1.35);
+  }
+  function spawnFlyingTile(x, y) {
+    // Knock direction: away from the stream's center
+    const dx = x - stream.x;
+    const dy = y - stream.y;
+    const dist = Math.hypot(dx, dy) || 1;
+    const knockX = dx / dist;
+    const knockY = dy / dist;
+    // Inherit a bit of the stream's momentum so direction of cleaning sweeps the tiles along
+    const streamSpeed = Math.hypot(stream.vx, stream.vy) || 1;
+    const inheritX = (stream.vx / streamSpeed) * TILE_STREAM_INHERIT * streamSpeed;
+    const inheritY = (stream.vy / streamSpeed) * TILE_STREAM_INHERIT * streamSpeed;
+    const launch = TILE_KNOCK_BASE + Math.random() * TILE_KNOCK_VAR;
+    tiles.push({
+      x, y,
+      vx: knockX * launch + inheritX,
+      vy: knockY * launch + inheritY - 50, // small upward kick — break, then fall
+      rot: (Math.random() - 0.5) * 0.4,
+      rotV: (Math.random() * 2 - 1) * TILE_ROT_MAX,
+      size: CHUNK_SIZE - CHUNK_GAP,
+      scale: 1,
+    });
+  }
+
+  // === GRID HIT DETECTION ===
+  function damageGrid() {
+    const cMin = Math.max(0, Math.floor((stream.x - ERASE_RADIUS) / CHUNK_SIZE));
+    const cMax = Math.min(cols - 1, Math.floor((stream.x + ERASE_RADIUS) / CHUNK_SIZE));
+    const rMin = Math.max(0, Math.floor((stream.y - ERASE_RADIUS) / CHUNK_SIZE));
+    const rMax = Math.min(rows - 1, Math.floor((stream.y + ERASE_RADIUS) / CHUNK_SIZE));
+
+    const r2 = ERASE_RADIUS * ERASE_RADIUS;
+    for (let r = rMin; r <= rMax; r++) {
+      for (let c = cMin; c <= cMax; c++) {
+        const idx = r * cols + c;
+        if (grid[idx] === 0) continue;
+        const cx = c * CHUNK_SIZE + CHUNK_SIZE / 2;
+        const cy = r * CHUNK_SIZE + CHUNK_SIZE / 2;
+        const dx = cx - stream.x;
+        const dy = cy - stream.y;
+        if (dx * dx + dy * dy <= r2) {
+          grid[idx] = 0;
+          spawnFlyingTile(cx, cy);
+        }
+      }
+    }
+  }
+
+  // === LOOP ===
+  let lastT = now();
+  function update(dt) {
+    if (!held) {
+      stream.x += stream.vx * dt;
+      stream.y += stream.vy * dt;
+      const pad = ERASE_RADIUS * 0.5;
+      let bounced = false;
+      if (stream.x < pad) { stream.x = pad; stream.vx = Math.abs(stream.vx); bounced = true; }
+      if (stream.x > W - pad) { stream.x = W - pad; stream.vx = -Math.abs(stream.vx); bounced = true; }
+      if (stream.y < pad) { stream.y = pad; stream.vy = Math.abs(stream.vy); bounced = true; }
+      if (stream.y > H - pad) { stream.y = H - pad; stream.vy = -Math.abs(stream.vy); bounced = true; }
+      if (bounced) {
+        const speed = Math.hypot(stream.vx, stream.vy);
+        const angle = Math.atan2(stream.vy, stream.vx) + (Math.random() * 2 - 1) * BOUNCE_NUDGE_RAD;
+        stream.vx = Math.cos(angle) * speed;
+        stream.vy = Math.sin(angle) * speed;
+        spawnBounceSplash(stream.x, stream.y);
+      }
+    }
+
+    damageGrid();
+    // Splash spawning at constant rate
+    splashTimer += dt;
+    const splashInterval = 1 / SPLASH_SPAWN_HZ;
+    while (splashTimer > splashInterval) {
+      spawnSplash(stream.x, stream.y);
+      splashTimer -= splashInterval;
+    }
+    // Splash lifetime
+    for (let i = splashes.length - 1; i >= 0; i--) {
+      splashes[i].age += dt;
+      if (splashes[i].age >= SPLASH_LIFE) splashes.splice(i, 1);
+    }
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      const drag = Math.pow(0.96, dt * 60);
+      p.vx *= drag;
+      p.vy *= drag;
+      p.life -= p.decay * dt;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+
+    // Tile physics
+    for (let i = tiles.length - 1; i >= 0; i--) {
+      const t = tiles[i];
+      t.vy += TILE_GRAVITY * dt;
+      t.x += t.vx * dt;
+      t.y += t.vy * dt;
+      t.rot += t.rotV * dt;
+      t.scale -= TILE_SHRINK * dt;
+      if (t.y > H + 80 || t.scale <= 0.05) tiles.splice(i, 1);
+    }
+  }
+
+  function render() {
+    // Clean wall surface
+    ctx.fillStyle = '#6e7884';
+    ctx.fillRect(0, 0, W, H);
+
+    // Chunks
+    ctx.fillStyle = '#000000';
+    const drawSize = CHUNK_SIZE - CHUNK_GAP;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        if (grid[r * cols + c]) {
+          ctx.fillRect(c * CHUNK_SIZE, r * CHUNK_SIZE, drawSize, drawSize);
+        }
+      }
+    }
+
+    // Flying tiles — immediate launch, tumble, shrink
+    for (const t of tiles) {
+      ctx.save();
+      ctx.translate(t.x, t.y);
+      ctx.rotate(t.rot);
+      ctx.scale(t.scale, t.scale);
+      ctx.fillStyle = '#000000';
+      const half = t.size / 2;
+      ctx.fillRect(-half, -half, t.size, t.size);
+      ctx.restore();
+    }
+
+    // Splash tiles — angular water impact, normal blend, stiff fade
+    ctx.lineWidth = SPLASH_LINE_WIDTH;
+    for (const s of splashes) {
+      const k = s.age / SPLASH_LIFE; // 0..1
+      const size = (SPLASH_START_SIZE + (SPLASH_END_SIZE - SPLASH_START_SIZE) * k) * s.sizeMul;
+      // Stiff alpha: hold ~80% of life at full, then snap fade in last 20%
+      const alpha = 0.7 * (k < 0.8 ? 1 : (1 - k) / 0.2);
+      ctx.strokeStyle = `rgba(${SPLASH_R},${SPLASH_G},${SPLASH_B},${alpha})`;
+      ctx.save();
+      ctx.translate(s.x, s.y);
+      ctx.rotate(s.rot);
+      const half = size / 2;
+      ctx.strokeRect(-half, -half, size, size);
+      ctx.restore();
+    }
+
+    // Tiny precise stream marker so position is always readable
+    ctx.fillStyle = `rgba(${SPLASH_R},${SPLASH_G},${SPLASH_B},0.95)`;
+    ctx.fillRect(stream.x - 2.5, stream.y - 2.5, 5, 5);
+  }
+
+  function loop() {
+    const t = now();
+    let dt = (t - lastT) / 1000;
+    lastT = t;
+    if (dt > 0.05) dt = 0.05;
+    update(dt);
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  window.addEventListener('resize', () => { resize(); resetStream(); });
+  resize();
+  resetStream();
+  lastT = now();
+  loop();
+})();
+</script>
+</body>
+</html>
