@@ -104,6 +104,20 @@ export function setupGui(getW: () => number, getH: () => number) {
   const wallF = gui.addFolder('Wall');
   wallF.addColor(config, 'wallColor').name('wall color');
 
+  // --- Display ---
+  const dispF = gui.addFolder('Display');
+  dispF.add(config.display, 'virtualWidth',  640, 3840, 16).name('virtual width')
+    .onFinishChange(() => window.dispatchEvent(new Event('resize')));
+  dispF.add(config.display, 'virtualHeight', 360, 2160, 16).name('virtual height')
+    .onFinishChange(() => window.dispatchEvent(new Event('resize')));
+  dispF.addColor(config.display, 'letterbox').name('letterbox color');
+
+  // --- Keyboard ---
+  const kbF = gui.addFolder('Keyboard');
+  kbF.add(config.keyboard, 'accel',     0, 8000, 50).name('accel (px/s²)');
+  kbF.add(config.keyboard, 'maxSpeed',  0, 3000, 25).name('max speed');
+  kbF.add(config.keyboard, 'perpBrake', 0,   12, 0.1).name('perp brake');
+
   // --- Run (Phase 3) ---
   const runF = gui.addFolder('Run');
   runF.add(config.run, 'tankSeconds',     5, 120,   1).name('tank seconds');

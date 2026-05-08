@@ -1,5 +1,6 @@
 import { config } from './config';
 import { effective } from './effective';
+import { keyDir, isThrusting } from './keyboard';
 
 export interface Stream {
   x: number; y: number;
@@ -23,6 +24,27 @@ export function updateStream(
   onBounce: (x: number, y: number) => void,
 ) {
   if (held) return;
+
+  // Keyboard thrust (desktop). Applied before integration so it composes
+  // with the always-moving free-flight feel rather than overriding it.
+  if (isThrusting()) {
+    const d = keyDir();
+    const len = Math.hypot(d.x, d.y) || 1;
+    const tx = d.x / len, ty = d.y / len;
+    stream.vx += tx * config.keyboard.accel * dt;
+    stream.vy += ty * config.keyboard.accel * dt;
+    // Brake the perpendicular component so input direction wins quickly.
+    const perp = stream.vx * -ty + stream.vy * tx;
+    const k = Math.min(1, config.keyboard.perpBrake * dt);
+    stream.vx -= -ty * perp * k;
+    stream.vy -=  tx * perp * k;
+    const sp = Math.hypot(stream.vx, stream.vy);
+    if (sp > config.keyboard.maxSpeed) {
+      stream.vx = stream.vx / sp * config.keyboard.maxSpeed;
+      stream.vy = stream.vy / sp * config.keyboard.maxSpeed;
+    }
+  }
+
   stream.x += stream.vx * dt;
   stream.y += stream.vy * dt;
 

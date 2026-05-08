@@ -104,15 +104,41 @@ export function setupInput(
   canvas: HTMLCanvasElement,
   getWidth: () => number,
   getHeight: () => number,
+  toVirtual: (clientX: number, clientY: number) => { x: number; y: number },
 ) {
   getW = getWidth;
   getH = getHeight;
 
-  canvas.addEventListener('touchstart', (e) => { e.preventDefault(); const t = e.touches[0]; onDown(t.clientX, t.clientY); }, { passive: false });
-  canvas.addEventListener('touchmove',  (e) => { e.preventDefault(); const t = e.touches[0]; onMove(t.clientX, t.clientY); }, { passive: false });
-  canvas.addEventListener('touchend',   (e) => { e.preventDefault(); onUp(); }, { passive: false });
-  canvas.addEventListener('touchcancel',(e) => { e.preventDefault(); onUp(); }, { passive: false });
-  canvas.addEventListener('mousedown',  (e) => onDown(e.clientX, e.clientY));
-  window.addEventListener('mousemove',  (e) => onMove(e.clientX, e.clientY));
-  window.addEventListener('mouseup',    onUp);
+  // Touch (mobile)
+  canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    const t = e.touches[0];
+    const v = toVirtual(t.clientX, t.clientY);
+    onDown(v.x, v.y);
+  }, { passive: false });
+  canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    const t = e.touches[0];
+    const v = toVirtual(t.clientX, t.clientY);
+    onMove(v.x, v.y);
+  }, { passive: false });
+  canvas.addEventListener('touchend',    (e) => { e.preventDefault(); onUp(); }, { passive: false });
+  canvas.addEventListener('touchcancel', (e) => { e.preventDefault(); onUp(); }, { passive: false });
+
+  // Mouse / touchpad (desktop). Note the down handler is on the canvas (so
+  // clicks on overlays don't grab) but move/up are on window so dragging
+  // off-canvas doesn't desync.
+  canvas.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    const v = toVirtual(e.clientX, e.clientY);
+    onDown(v.x, v.y);
+  });
+  window.addEventListener('mousemove', (e) => {
+    const v = toVirtual(e.clientX, e.clientY);
+    onMove(v.x, v.y);
+  });
+  window.addEventListener('mouseup', (e) => {
+    if (e.button !== 0) return;
+    onUp();
+  });
 }

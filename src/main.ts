@@ -9,25 +9,55 @@ import { recomputeEffective } from './effective';
 import { startRun, tickRun, getRun } from './run';
 import { updateHud, showEndScreen, showShop, setFps } from './hud';
 import { awardCurrency } from './upgrades';
+import { setupKeyboard } from './keyboard';
+import { config } from './config';
 
 const canvas = document.getElementById('stage') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d')!;
 const resetBtn = document.getElementById('reset') as HTMLButtonElement;
+const pauseOverlay = document.getElementById('pauseOverlay') as HTMLDivElement;
 
-let W = 0, H = 0, DPR = 1;
+// Virtual play space. All gameplay coordinates run in this space; resize
+// only changes how it's displayed (letterboxed within the window).
+let W = config.display.virtualWidth;
+let H = config.display.virtualHeight;
+let DPR = 1;
+let scale = 1;
+let offsetX = 0;
+let offsetY = 0;
 
 function resize() {
+  W = config.display.virtualWidth;
+  H = config.display.virtualHeight;
+
+  const winW = window.innerWidth;
+  const winH = window.innerHeight;
+  scale = Math.min(winW / W, winH / H);
+  const dispW = W * scale;
+  const dispH = H * scale;
+  offsetX = (winW - dispW) / 2;
+  offsetY = (winH - dispH) / 2;
+
   // Cap DPR at 2 — beyond that we pay a lot of fill cost for almost no
   // perceptual gain on the chunky aesthetic.
   DPR = Math.min(window.devicePixelRatio || 1, 2);
-  W = window.innerWidth;
-  H = window.innerHeight;
-  canvas.width = W * DPR;
+  canvas.width  = W * DPR;
   canvas.height = H * DPR;
-  canvas.style.width = W + 'px';
-  canvas.style.height = H + 'px';
+  canvas.style.width  = dispW + 'px';
+  canvas.style.height = dispH + 'px';
+  canvas.style.left = offsetX + 'px';
+  canvas.style.top  = offsetY + 'px';
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   initGrid(W, H);
+  document.documentElement.style.background = config.display.letterbox;
+  document.body.style.background = config.display.letterbox;
+}
+
+function clientToVirtual(clientX: number, clientY: number) {
+  return {
+    x: (clientX - offsetX) / scale,
+    y: (clientY - offsetY) / scale,
+  };
 }
 
 function beginNewRun() {
@@ -36,12 +66,28 @@ function beginNewRun() {
   clearSplashes();
   resetStream(W, H);
   setInputEnabled(true);
+  paused = false;
+  pauseOverlay.classList.remove('show');
   startRun(performance.now());
 }
 
-setupInput(canvas, () => W, () => H);
+let paused = false;
+function togglePause() {
+  if (getRun().state !== 'playing') return;
+  paused = !paused;
+  pauseOverlay.classList.toggle('show', paused);
+}
+
+setupInput(canvas, () => W, () => H, clientToVirtual);
 setupGui(() => W, () => H);
+setupKeyboard({ onPause: togglePause, onRestart: beginNewRun });
 onCornerTap(toggleGui);
+
+// Hide the desktop control hint on touch-only devices.
+if (matchMedia('(hover: none) and (pointer: coarse)').matches) {
+  const hint = document.getElementById('hint');
+  if (hint) hint.style.display = 'none';
+}
 
 resetBtn.addEventListener('click', (e) => {
   e.stopPropagation();
@@ -49,25 +95,19 @@ resetBtn.addEventListener('click', (e) => {
 });
 
 let lastT = performance.now();
-// Sliding-window FPS: cheap and stable, only displayed when debug toggle is on.
 const fpsFrames: number[] = [];
 let fpsUpdateAt = 0;
 
 function loop() {
   const t = performance.now();
-  // Cap dt to avoid huge steps after tab switch / minimization. All physics
-  // is dt-based in px/sec — Safari can ramp to 120Hz mid-session and naive
-  // per-frame deltas would double speeds.
   let dt = (t - lastT) / 1000;
   lastT = t;
   if (dt > 0.05) dt = 0.05;
 
-  // Resolve config × upgrade-mods every frame so live tuning AND upgrade
-  // purchases mid-loop are picked up immediately by gameplay code.
   recomputeEffective();
 
   const run = getRun();
-  if (run.state === 'playing') {
+  if (run.state === 'playing' && !paused) {
     updateStream(dt, W, H, isHeld(), spawnBounceSplash);
     damageGrid(spawnFlyingTile);
     updateSplashes(dt);
@@ -78,7 +118,6 @@ function loop() {
     updateHud(run.water, cleanedPct, (t - run.startTime) / 1000);
 
     if (!stillPlaying && run.result) {
-      // Run just ended — freeze input, award currency, present end → shop → new run.
       setInputEnabled(false);
       const earned = awardCurrency(run.result);
       const result = run.result;
@@ -90,7 +129,6 @@ function loop() {
 
   render(ctx, W, H);
 
-  // FPS sample (kept cheap whether or not the readout is visible).
   fpsFrames.push(t);
   while (fpsFrames.length && t - fpsFrames[0] > 1000) fpsFrames.shift();
   if (t - fpsUpdateAt > 200) {
@@ -103,8 +141,6 @@ function loop() {
 
 window.addEventListener('resize', () => {
   resize();
-  // Don't restart the run on rotate — just reseed the grid + stream so the
-  // play area scales correctly.
   resetStream(W, H);
 });
 resize();

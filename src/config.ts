@@ -55,6 +55,27 @@ export const config = {
 
   wallColor: '#6e7884', // mid slate-gray — picked so light blue splash has contrast
 
+  display: {
+    // Fixed virtual resolution. The canvas is letterboxed inside the window —
+    // gameplay coordinates always run in this space, so feel is identical
+    // on a 4K monitor and a phone. 1280x720 keeps tile counts reasonable.
+    virtualWidth: 1280,
+    virtualHeight: 720,
+    // Background color around the letterbox bars.
+    letterbox: '#06080b',
+  },
+
+  keyboard: {
+    // WASD / arrow thrust for desktop play. Acceleration (px/sec²) is
+    // applied each frame the key is held; speed is then clamped.
+    accel: 2400,
+    maxSpeed: 900,
+    // While any thrust key is held, brake the perpendicular component so the
+    // stream feels responsive instead of orbiting forever. 0 = no brake,
+    // 1 = full kill in one second.
+    perpBrake: 3.5,
+  },
+
   run: {
     // Seconds the tank lasts at full pressure with a drain multiplier of 1.0.
     // Drain is continuous because the stream is always on; the user manages it
