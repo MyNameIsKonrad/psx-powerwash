@@ -1,9 +1,13 @@
 import { resetStream, updateStream } from './stream';
-import { setupInput, isHeld } from './input';
-import { initGrid, damageGrid } from './grid';
+import { setupInput, isHeld, onCornerTap, setInputEnabled } from './input';
+import { initGrid, damageGrid, destroyedCount, totalChunks } from './grid';
 import { spawnFlyingTile, updateTiles, clearTiles } from './tiles';
 import { spawnBounceSplash, updateSplashes, clearSplashes } from './splash';
 import { render } from './render';
+import { setupGui, toggleGui } from './gui';
+import { startRun, tickRun, getRun } from './run';
+import { updateHud, showEndScreen, showShop } from './hud';
+import { awardCurrency } from './upgrades';
 
 const canvas = document.getElementById('stage') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d')!;
@@ -25,14 +29,22 @@ function resize() {
   initGrid(W, H);
 }
 
-setupInput(canvas, () => W, () => H);
-
-resetBtn.addEventListener('click', (e) => {
-  e.stopPropagation();
+function beginNewRun() {
   initGrid(W, H);
   clearTiles();
   clearSplashes();
   resetStream(W, H);
+  setInputEnabled(true);
+  startRun(performance.now());
+}
+
+setupInput(canvas, () => W, () => H);
+setupGui(() => W, () => H);
+onCornerTap(toggleGui);
+
+resetBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  beginNewRun();
 });
 
 let lastT = performance.now();
@@ -45,17 +57,39 @@ function loop() {
   lastT = t;
   if (dt > 0.05) dt = 0.05;
 
-  updateStream(dt, W, H, isHeld(), spawnBounceSplash);
-  damageGrid(spawnFlyingTile);
-  updateSplashes(dt);
-  updateTiles(dt, H);
+  const run = getRun();
+  if (run.state === 'playing') {
+    updateStream(dt, W, H, isHeld(), spawnBounceSplash);
+    damageGrid(spawnFlyingTile);
+    updateSplashes(dt);
+    updateTiles(dt, H);
+
+    const stillPlaying = tickRun(dt, t);
+    const cleanedPct = (destroyedCount() / Math.max(1, totalChunks())) * 100;
+    updateHud(run.water, cleanedPct, (t - run.startTime) / 1000);
+
+    if (!stillPlaying && run.result) {
+      // Run just ended — freeze input, award currency, present end → shop → new run.
+      setInputEnabled(false);
+      const earned = awardCurrency(run.result);
+      const result = run.result;
+      showEndScreen(result, earned, () => {
+        showShop(beginNewRun);
+      });
+    }
+  }
 
   render(ctx, W, H);
   requestAnimationFrame(loop);
 }
 
-window.addEventListener('resize', () => { resize(); resetStream(W, H); });
+window.addEventListener('resize', () => {
+  resize();
+  // Don't restart the run on rotate — just reseed the grid + stream so the
+  // play area scales correctly.
+  resetStream(W, H);
+});
 resize();
-resetStream(W, H);
+beginNewRun();
 lastT = performance.now();
 loop();

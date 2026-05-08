@@ -11,6 +11,19 @@ let grabOffsetY = 0;
 let getW = () => 0;
 let getH = () => 0;
 
+// Top-left corner is reserved as a tap zone (e.g. toggle the tuning GUI on
+// mobile so it isn't always covering the play area). Taps here do not grab.
+const CORNER_SIZE = 80;
+let cornerTapHandler: (() => void) | null = null;
+export function onCornerTap(fn: () => void) { cornerTapHandler = fn; }
+
+// Allow other modules to suspend grab/throw entirely (end screen, upgrade UI).
+let inputEnabled = true;
+export function setInputEnabled(v: boolean) {
+  inputEnabled = v;
+  if (!v) held = false;
+}
+
 interface Sample { x: number; y: number; t: number }
 const samples: Sample[] = [];
 
@@ -26,6 +39,11 @@ function clampToPlayArea() {
 }
 
 function onDown(x: number, y: number) {
+  if (x < CORNER_SIZE && y < CORNER_SIZE && cornerTapHandler) {
+    cornerTapHandler();
+    return;
+  }
+  if (!inputEnabled) return;
   held = true;
   grabOffsetX = stream.x - x;
   grabOffsetY = stream.y - y;

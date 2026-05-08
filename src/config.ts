@@ -51,6 +51,17 @@ export const config = {
   },
 
   wallColor: '#6e7884', // mid slate-gray — picked so light blue splash has contrast
+
+  run: {
+    // Seconds the tank lasts at full pressure with a drain multiplier of 1.0.
+    // Drain is continuous because the stream is always on; the user manages it
+    // by hitting more chunks per second of water.
+    tankSeconds: 30,
+    // Win threshold: % of chunks destroyed.
+    cleanTargetPct: 80,
+    // Multiplier on tank drain (debug knob — set to 0 to never lose water).
+    drainMultiplier: 1.0,
+  },
 };
 
 export type Config = typeof config;
