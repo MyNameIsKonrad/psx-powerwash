@@ -38,15 +38,17 @@
     transition: width 0.05s linear;
   }
 
-  /* Reset button — bottom-right so the lil-gui panel doesn't sit on top of it. */
-  #reset {
-    position: fixed; bottom: calc(12px + env(safe-area-inset-bottom)); right: 12px; z-index: 10;
+  /* Bottom-right control cluster (cross-platform — touch and desktop both
+     get visible buttons; keyboard/gamepad just shortcut to the same actions). */
+  .ctl-cluster { position: fixed; bottom: calc(12px + env(safe-area-inset-bottom)); right: 12px; z-index: 10; display: flex; gap: 8px; }
+  .ctl-cluster button {
     background: rgba(0,0,0,0.4); color: #fff; border: 1px solid rgba(255,255,255,0.3);
     padding: 8px 14px; border-radius: 999px; font: 500 13px -apple-system, system-ui, sans-serif;
     backdrop-filter: blur(8px); cursor: pointer;
-    transition: opacity 0.2s ease;
+    transition: opacity 0.2s ease, background 0.15s ease;
   }
-  #reset:hover { background: rgba(0,0,0,0.55); }
+  .ctl-cluster button:hover { background: rgba(0,0,0,0.55); }
+  body.overlay-open .ctl-cluster { opacity: 0; pointer-events: none; }
 
   /* Controls hint (desktop only — hidden on touch via JS feature check) */
   #hint {
@@ -65,6 +67,9 @@
     font-variant-numeric: tabular-nums; display: none;
   }
   #fps.show { display: block; }
+
+  /* Compatibility shim: the older #reset id retains its style via the cluster
+     rule above; this block was deliberately removed when refactoring to a cluster. */
 
   /* Pause overlay — light, fast to dismiss */
   #pauseOverlay {
@@ -143,7 +148,10 @@
   </div>
 </div>
 
-<button id="reset">restart · R</button>
+<div class="ctl-cluster">
+  <button id="pauseBtn" title="pause (Esc)">pause</button>
+  <button id="reset" title="restart (R)">restart · R</button>
+</div>
 <div id="fps">— fps</div>
 <div id="hint">drag to throw · WASD/arrows to thrust · esc to pause · R to restart</div>
 

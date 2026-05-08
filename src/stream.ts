@@ -1,6 +1,21 @@
 import { config } from './config';
 import { effective } from './effective';
 import { keyDir, isThrusting } from './keyboard';
+import { gamepadStick } from './gamepad';
+
+// Resolve an analog thrust intent from any input modality. Magnitude is 0..1
+// so e.g. half-stick produces half acceleration. Keyboard always produces
+// magnitude 1 (binary). Returns null if no thrust input is active.
+function thrustIntent(): { x: number; y: number; mag: number } | null {
+  if (isThrusting()) {
+    const d = keyDir();
+    const len = Math.hypot(d.x, d.y) || 1;
+    return { x: d.x / len, y: d.y / len, mag: 1 };
+  }
+  const s = gamepadStick();
+  if (s) return { x: s.x, y: s.y, mag: s.mag };
+  return null;
+}
 
 export interface Stream {
   x: number; y: number;
@@ -25,19 +40,21 @@ export function updateStream(
 ) {
   if (held) return;
 
-  // Keyboard thrust (desktop). Applied before integration so it composes
-  // with the always-moving free-flight feel rather than overriding it.
-  if (isThrusting()) {
-    const d = keyDir();
-    const len = Math.hypot(d.x, d.y) || 1;
-    const tx = d.x / len, ty = d.y / len;
-    stream.vx += tx * config.keyboard.accel * dt;
-    stream.vy += ty * config.keyboard.accel * dt;
+  // Thrust intent (keyboard or gamepad). Applied before integration so it
+  // composes with the always-moving free-flight feel rather than overriding
+  // it. Same code path for every modality — analog stick just delivers a
+  // partial-magnitude version of the same vector keyboard delivers as 1.
+  const t = thrustIntent();
+  if (t) {
+    stream.vx += t.x * config.keyboard.accel * t.mag * dt;
+    stream.vy += t.y * config.keyboard.accel * t.mag * dt;
     // Brake the perpendicular component so input direction wins quickly.
-    const perp = stream.vx * -ty + stream.vy * tx;
-    const k = Math.min(1, config.keyboard.perpBrake * dt);
-    stream.vx -= -ty * perp * k;
-    stream.vy -=  tx * perp * k;
+    // Perpendicular brake scales with magnitude too — feathering the stick
+    // shouldn't aggressively snap perpendicular momentum.
+    const perp = stream.vx * -t.y + stream.vy * t.x;
+    const k = Math.min(1, config.keyboard.perpBrake * t.mag * dt);
+    stream.vx -= -t.y * perp * k;
+    stream.vy -=  t.x * perp * k;
     const sp = Math.hypot(stream.vx, stream.vy);
     if (sp > config.keyboard.maxSpeed) {
       stream.vx = stream.vx / sp * config.keyboard.maxSpeed;

@@ -10,6 +10,7 @@ import { startRun, tickRun, getRun } from './run';
 import { updateHud, showEndScreen, showShop, setFps } from './hud';
 import { awardCurrency } from './upgrades';
 import { setupKeyboard } from './keyboard';
+import { setupGamepad, pollGamepad, isGamepadConnected } from './gamepad';
 import { config } from './config';
 
 const canvas = document.getElementById('stage') as HTMLCanvasElement;
@@ -81,12 +82,45 @@ function togglePause() {
 setupInput(canvas, () => W, () => H, clientToVirtual);
 setupGui(() => W, () => H);
 setupKeyboard({ onPause: togglePause, onRestart: beginNewRun });
+setupGamepad({ onPause: togglePause, onRestart: beginNewRun, onToggleGui: toggleGui });
 onCornerTap(toggleGui);
 
-// Hide the desktop control hint on touch-only devices.
-if (matchMedia('(hover: none) and (pointer: coarse)').matches) {
-  const hint = document.getElementById('hint');
-  if (hint) hint.style.display = 'none';
+// Backtick toggles the tuning GUI on desktop — parity with the mobile
+// corner-tap, and quicker than reaching for the corner with a mouse.
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'Backquote' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    e.preventDefault();
+    toggleGui();
+  }
+});
+
+// Pause button — visible on every platform so touch users can pause too.
+const pauseBtn = document.getElementById('pauseBtn') as HTMLButtonElement | null;
+if (pauseBtn) pauseBtn.addEventListener('click', (e) => { e.stopPropagation(); togglePause(); });
+
+// Adaptive hint text — show only what's available on this device. The
+// gamepad branch updates dynamically because controllers can be plugged in
+// after page load.
+const hintEl = document.getElementById('hint');
+const isTouchOnly = matchMedia('(hover: none) and (pointer: coarse)').matches;
+function refreshHint() {
+  if (!hintEl) return;
+  const parts: string[] = [];
+  if (isTouchOnly) {
+    parts.push('drag to throw', 'top-left to tune');
+  } else {
+    parts.push('drag to throw', 'WASD/arrows to thrust', 'esc to pause', 'R to restart', '` to tune');
+    if (isGamepadConnected()) parts.push('gamepad: stick to thrust, start to pause, Y to restart');
+  }
+  hintEl.textContent = parts.join(' · ');
+}
+refreshHint();
+window.addEventListener('gamepadconnected', refreshHint);
+window.addEventListener('gamepaddisconnected', refreshHint);
+
+// Restart button label parity: only show "· R" hotkey hint where keyboard exists.
+if (isTouchOnly) {
+  const r = document.getElementById('reset'); if (r) r.textContent = 'restart';
 }
 
 resetBtn.addEventListener('click', (e) => {
@@ -105,6 +139,7 @@ function loop() {
   if (dt > 0.05) dt = 0.05;
 
   recomputeEffective();
+  pollGamepad();
 
   const run = getRun();
   if (run.state === 'playing' && !paused) {
