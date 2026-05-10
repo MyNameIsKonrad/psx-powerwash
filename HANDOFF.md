@@ -39,12 +39,12 @@ These were iterated to feel right in the original prototype. If you find yoursel
 
 ```
 src/
-  main.ts        bootstrap, resize/letterbox, main loop, input wiring, pause, FPS
+  main.ts        bootstrap, resize/letterbox, main loop, input wiring, pause, Backquote/GUI-toggle, FPS
   config.ts      every tunable constant — single mutable object, lil-gui binds here
   effective.ts   config × upgrade mods → cached gameplay values, recomputed per frame
   stream.ts      stream physics, bounce, edge snap, thrustIntent (kbd/gamepad → thrust)
   input.ts       pointer (touch + mouse) → grab/drag/release; cornerTap; setInputEnabled
-  keyboard.ts    held-keys set, keyDir(), Esc/R/Backquote handlers
+  keyboard.ts    held-keys set, keyDir(), Esc/R handlers
   gamepad.ts     polled per frame; left stick → analog thrust, buttons → pause/restart/GUI
   grid.ts        Uint8Array of HP per cell, damageGrid, destroyedCount
   tiles.ts       flying tile chunks (post-destruction physics)
