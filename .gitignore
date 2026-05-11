@@ -6,3 +6,8 @@ dist
 .env
 .env.*
 tsconfig.tsbuildinfo
+
+# Session-state files — live only at main repo root, never in worktrees
+HANDOFF.md
+NOTES.md
+.claude/worktrees/

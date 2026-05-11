@@ -21,6 +21,10 @@ npm run deploy       # builds and pushes dist/ to gh-pages branch
 
 GitHub Pages is already configured to serve from the `gh-pages` branch. After `npm run deploy`, the build takes ~1–2 minutes to go live.
 
+## Current state (2026-05-11)
+
+Physics sandbox active on `main` (shop/HUD/meta-game stripped). Stream bounces forever, tiles pop, R resets, backtick opens lil-gui for tuning. Full-featured state preserved on `prototype-modules` branch. Next: rediscover and re-implement the non-core systems naturally.
+
 ## DO NOT BREAK — preserved feel
 
 These were iterated to feel right in the original prototype. If you find yourself "cleaning up" any of them, stop and read the brief.
@@ -39,7 +43,7 @@ These were iterated to feel right in the original prototype. If you find yoursel
 
 ```
 src/
-  main.ts        bootstrap, resize/letterbox, main loop, input wiring, pause, Backquote/GUI-toggle, FPS
+  main.ts        bootstrap, resize/letterbox, main loop, input wiring, pause, Backquote/GUI-toggle
   config.ts      every tunable constant — single mutable object, lil-gui binds here
   effective.ts   config × upgrade mods → cached gameplay values, recomputed per frame
   stream.ts      stream physics, bounce, edge snap, thrustIntent (kbd/gamepad → thrust)
@@ -50,10 +54,10 @@ src/
   tiles.ts       flying tile chunks (post-destruction physics)
   splash.ts      water-impact rectangles + bounce splash + haptic
   render.ts      all canvas drawing
-  gui.ts         lil-gui setup, preset save/load, debug folder
-  run.ts         run state machine (playing/won/lost), water drain, win/lose checks
-  hud.ts         HUD elements, end screen, shop overlay, FPS, overlay-open class
-  upgrades.ts    persistent currency/levels, cost growth, currentMods()
+  gui.ts         lil-gui setup, preset save/load, debug folder (currently unused in main loop)
+  run.ts         run state machine (untouched; non-core)
+  hud.ts         HUD elements, end screen, shop overlay (currently unused in main loop)
+  upgrades.ts    persistent currency/levels, cost growth, currentMods() (currently unused in main loop)
 ```
 
 ## Architecture notes
@@ -74,13 +78,10 @@ Gameplay runs in a fixed virtual resolution (`config.display.virtualWidth × vir
 
 One physics path applies thrust + perpendicular brake + speed clamp. To add a new modality (touch joystick, MIDI, etc.), make it return the same shape and slot it into `thrustIntent()`.
 
-### Run flow
-`beginNewRun() → playing → tickRun() drains water and watches destroyed% → won|lost → showEndScreen → showShop → beginNewRun()`. Physics is frozen when `run.state !== 'playing'` or `paused === true`.
-
 ### Save data (localStorage)
-- `psxwash:save` — `{ currency, levels: { tank, pressure, nozzle, recovery, payout } }`
-- `psxwash:presets` — `{ [name]: configSnapshot }` (named GUI presets)
-- Wipe both via Debug → "wipe save" in the GUI.
+- `psxwash:save` — `{ currency, levels: { tank, pressure, nozzle, recovery, payout } }` (untouched by current physics loop)
+- `psxwash:presets` — `{ [name]: configSnapshot }` (named GUI presets, still functional)
+- Wipe both via Debug → "wipe save" in the GUI (when shop/upgrades are re-integrated).
 
 ## Cross-platform input summary
 
@@ -105,33 +106,38 @@ These are the ones to reach for first when balancing. All in `config.ts` and exp
 - `tiles.streamInherit` — >0.3 gets floppy; <0.1 looks too uniform
 - `tiles.shrink` — higher = quicker disappear, lower = longer falling debris
 - `splash.spawnHz` × `splash.life` — visible splash count is roughly product of these
-- `run.tankSeconds` × `run.drainMultiplier` — tank length
-- `run.cleanTargetPct` — win condition (default 80)
 - `grid.chunkHp` — 1 keeps original feel, 2–3 is "scrub through layers"
 
 ## Gotchas
 
-- **iCloud Drive path.** The repo lives in `~/Library/Mobile Documents/com~apple~CloudDocs/Claude/Code/psxwash`. Spaces in path → quote everything in shell commands. `node_modules` in iCloud occasionally hiccups; if a build acts strange, `rm -rf node_modules` and reinstall.
+- **Repo path.** Lives in `~/code/psx-powerwash` (not iCloud — iCloud-synced node_modules caused hiccups during early prototyping).
 - **npm cache permission.** `~/.npm` had root-owned files from a past npm bug. We use `--cache=/tmp/npm-cache-pw` as a workaround. Permanent fix is `sudo chown -R 501:20 ~/.npm` (not done — needs the user to run sudo).
 - **Vite `base`.** `vite.config.ts` has `base: '/psx-powerwash/'`. If the repo is renamed, update this and redeploy. GH Pages would 404 on assets otherwise.
 - **gh-pages branch is auto-managed.** `npm run deploy` (uses the `gh-pages` package) force-pushes `dist/` to the `gh-pages` branch. Don't edit that branch by hand.
 - **The original `prototype.html` is the source of truth for feel.** Open it in a browser side-by-side with the deployed app whenever you're worried something drifted.
 - **`config.tsbuildinfo` is gitignored.** TypeScript will regenerate it.
-- **Pause is gated to active runs only.** Pressing Esc on the end screen / shop is a no-op. This is intentional.
+- **Pause is gated to active runs only.** Pressing Esc on the end screen / shop is a no-op. (Currently disabled since run loop is stripped; re-enable when run loop returns.)
 - **`tsconfig.json` has `noUnusedLocals: false`.** Loosened during the rapid build-out. Tighten back to `true` once code stabilizes.
 
 ## Open ideas (good for next sessions)
 
-Roughly ordered by leverage:
+### Soon (re-implement from scratch)
 
-1. **Audio.** Web Audio synthesized impact + splash + bounce sounds. The bounce callback in `splash.ts` is the natural hook (already has haptic; add audio alongside). No assets needed.
-2. **Wall variety.** A `dirt-density` knob in init that pre-clears some cells with randomized noise/patterns. Would unlock 100s of "levels" worth of variety from one config knob. `grid.ts:initGrid` is the place.
-3. **Combo/streak system.** Track consecutive destroys within a time window; multiplier feeds into currency award. The destroy callback in `damageGrid` is the hook; UI lives in `hud.ts`.
-4. **Real upgrade effects beyond multipliers.** New mods plug into `effective.ts`. Think: pierce (continue damaging through chunks), spread (multi-cell radius shape), slow-mo on bounce (deliberate hitstop, brief and tasteful — different from the rejected gameplay hitstop).
-5. **Touch joystick option.** A virtual stick on the bottom-left when no other modality is active. Slot into `thrustIntent()` — no other physics changes.
-6. **Tune via URL params.** `?preset=stiff-feel` loads a named preset on boot. Useful for sharing playtest builds.
-7. **Bigger walls / scroll camera.** If you outgrow 1280×720 of dirty, the play area can become bigger than the camera and scroll with the stream. Significant change — touches `main.ts`, `render.ts`, input conversion. Don't pre-build until you want it.
-8. **Stricter TypeScript.** Re-enable `noUnusedLocals` and `noUnusedParameters` once iteration slows.
+1. **Run loop.** `tickRun()` drains water and checks win/lose. Hook into `main.ts` loop to gate stream when water is depleted.
+2. **HUD.** Water tank + cleaned % + time. Update from the run loop. Wire show/hide via `run.state`.
+3. **End screen.** Win/lose + stats. Callback to restart run.
+4. **Shop + upgrades.** Display upgrade cards, render purchased levels, calc cost. Call `tryBuy()` on button click. Gate next run start until shop closes.
+
+### Later (extend the feel toy)
+
+5. **Audio.** Web Audio synthesized impact + splash + bounce sounds. The bounce callback in `splash.ts` is the natural hook (already has haptic; add audio alongside). No assets needed.
+6. **Wall variety.** A `dirt-density` knob in init that pre-clears some cells with randomized noise/patterns. Would unlock 100s of "levels" worth of variety from one config knob. `grid.ts:initGrid` is the place.
+7. **Combo/streak system.** Track consecutive destroys within a time window; multiplier feeds into currency award. The destroy callback in `damageGrid` is the hook; UI lives in `hud.ts`.
+8. **Real upgrade effects beyond multipliers.** New mods plug into `effective.ts`. Think: pierce (continue damaging through chunks), spread (multi-cell radius shape), slow-mo on bounce (deliberate hitstop, brief and tasteful — different from the rejected gameplay hitstop).
+9. **Touch joystick option.** A virtual stick on the bottom-left when no other modality is active. Slot into `thrustIntent()` — no other physics changes.
+10. **Tune via URL params.** `?preset=stiff-feel` loads a named preset on boot. Useful for sharing playtest builds.
+11. **Bigger walls / scroll camera.** If you outgrow 1280×720 of dirty, the play area can become bigger than the camera and scroll with the stream. Significant change — touches `main.ts`, `render.ts`, input conversion. Don't pre-build until you want it.
+12. **Stricter TypeScript.** Re-enable `noUnusedLocals` and `noUnusedParameters` once iteration slows.
 
 ## Things that have been tried and rejected — do not re-suggest
 
