@@ -10,7 +10,7 @@
     {
       "name": "psx-powerwash preview",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "psx-powerwash", "run", "preview"],
+      "runtimeArgs": ["run", "preview"],
       "port": 4173
     }
   ]

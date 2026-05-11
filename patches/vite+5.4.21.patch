@@ -1,0 +1,25 @@
+diff --git a/node_modules/vite/bin/vite.js b/node_modules/vite/bin/vite.js
+index a9bbb9c..cc9a31f 100755
+--- a/node_modules/vite/bin/vite.js
++++ b/node_modules/vite/bin/vite.js
+@@ -10,6 +10,20 @@ if (!import.meta.url.includes('node_modules')) {
+ 
+ global.__vite_start_time = performance.now()
+ 
++// Workaround: Claude Preview MCP injects `--root <path>`; Vite 5 takes [root] as
++// positional only. Translate the flag to positional before cli.js parses argv.
++// Persisted via patches/vite+5.4.21.patch (re-applied by postinstall).
++{
++  const rootIdx = process.argv.indexOf('--root')
++  if (rootIdx > 0) {
++    const rootValue = process.argv[rootIdx + 1]
++    process.argv.splice(rootIdx, rootValue && !rootValue.startsWith('-') ? 2 : 1)
++    if (rootValue && !rootValue.startsWith('-')) {
++      process.argv.push(rootValue)
++    }
++  }
++}
++
+ // check debug mode first before requiring the CLI.
+ const debugIndex = process.argv.findIndex((arg) => /^(?:-d|--debug)$/.test(arg))
+ const filterIndex = process.argv.findIndex((arg) =>
