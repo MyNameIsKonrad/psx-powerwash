@@ -16,8 +16,9 @@
 
   /* HUD */
   #hud {
+    display: none;
     position: fixed; top: calc(12px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%);
-    z-index: 5; display: flex; gap: 14px; align-items: center;
+    z-index: 5; gap: 14px; align-items: center;
     background: rgba(0,0,0,0.4); padding: 8px 14px; border-radius: 999px;
     border: 1px solid rgba(255,255,255,0.18);
     backdrop-filter: blur(8px);

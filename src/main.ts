@@ -1,14 +1,12 @@
 import { resetStream, updateStream } from './stream';
 import { setupInput, isHeld, onCornerTap, setInputEnabled } from './input';
-import { initGrid, damageGrid, destroyedCount, totalChunks } from './grid';
+import { initGrid, damageGrid } from './grid';
 import { spawnFlyingTile, updateTiles, clearTiles } from './tiles';
 import { spawnBounceSplash, updateSplashes, clearSplashes } from './splash';
 import { render } from './render';
 import { setupGui, toggleGui } from './gui';
 import { recomputeEffective } from './effective';
-import { startRun, tickRun, getRun } from './run';
-import { updateHud, showEndScreen, showShop, setFps } from './hud';
-import { awardCurrency } from './upgrades';
+import { startRun, getRun } from './run';
 import { setupKeyboard } from './keyboard';
 import { setupGamepad, pollGamepad, isGamepadConnected } from './gamepad';
 import { config } from './config';
@@ -129,8 +127,6 @@ resetBtn.addEventListener('click', (e) => {
 });
 
 let lastT = performance.now();
-const fpsFrames: number[] = [];
-let fpsUpdateAt = 0;
 
 function loop() {
   const t = performance.now();
@@ -147,30 +143,9 @@ function loop() {
     damageGrid(spawnFlyingTile);
     updateSplashes(dt);
     updateTiles(dt, H);
-
-    const stillPlaying = tickRun(dt, t);
-    const cleanedPct = (destroyedCount() / Math.max(1, totalChunks())) * 100;
-    updateHud(run.water, cleanedPct, (t - run.startTime) / 1000);
-
-    if (!stillPlaying && run.result) {
-      setInputEnabled(false);
-      const earned = awardCurrency(run.result);
-      const result = run.result;
-      showEndScreen(result, earned, () => {
-        showShop(beginNewRun);
-      });
-    }
   }
 
   render(ctx, W, H);
-
-  fpsFrames.push(t);
-  while (fpsFrames.length && t - fpsFrames[0] > 1000) fpsFrames.shift();
-  if (t - fpsUpdateAt > 200) {
-    setFps(fpsFrames.length);
-    fpsUpdateAt = t;
-  }
-
   requestAnimationFrame(loop);
 }
 

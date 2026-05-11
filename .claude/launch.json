@@ -4,7 +4,7 @@
     {
       "name": "psx-powerwash dev",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "psx-powerwash", "run", "dev"],
+      "runtimeArgs": ["run", "dev"],
       "port": 5173
     },
     {

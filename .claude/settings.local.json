@@ -9,7 +9,10 @@
       "Bash(npm run *)",
       "Bash(git init *)",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(gh pr create --title 'Strip shop/HUD/meta-game — physics sandbox only' --body ' *)",
+      "Bash(git push *)"
     ]
   }
 }
