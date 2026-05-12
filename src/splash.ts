@@ -1,5 +1,6 @@
 import { config } from './config';
 import { stream } from './stream';
+import { effective } from './effective';
 
 // Splash visual: short-lived rotated rectangles at the stream position. Stiff
 // alpha curve (held then snapped) — a smooth fade was tried and felt mushy.
@@ -17,7 +18,7 @@ export const splashes: Splash[] = [];
 let timer = 0;
 
 export function spawnSplash(cx: number, cy: number, sizeMul = 1) {
-  const r = Math.random() * config.splash.jitter;
+  const r = Math.random() * effective.splashJitter;
   const a = Math.random() * Math.PI * 2;
   splashes.push({
     x: cx + Math.cos(a) * r,

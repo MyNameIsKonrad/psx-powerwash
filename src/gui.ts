@@ -106,9 +106,16 @@ export function setupGui(getW: () => number, getH: () => number) {
 
   // --- Display ---
   const dispF = gui.addFolder('Display');
-  dispF.add(config.display, 'virtualWidth',  640, 3840, 16).name('virtual width')
+  dispF.add(config.display, 'responsiveMode', ['aspect', 'fixed', 'continuous'])
+    .name('responsive mode')
     .onFinishChange(() => window.dispatchEvent(new Event('resize')));
-  dispF.add(config.display, 'virtualHeight', 360, 2160, 16).name('virtual height')
+  dispF.add(config.display, 'referenceWidth',  320, 1920, 16).name('reference width')
+    .onFinishChange(() => window.dispatchEvent(new Event('resize')));
+  dispF.add(config.display, 'referenceHeight', 180, 1080, 16).name('reference height')
+    .onFinishChange(() => window.dispatchEvent(new Event('resize')));
+  dispF.add(config.display, 'virtualWidth',  320, 3840, 16).name('virtual width (fixed)')
+    .onFinishChange(() => window.dispatchEvent(new Event('resize')));
+  dispF.add(config.display, 'virtualHeight', 180, 2160, 16).name('virtual height (fixed)')
     .onFinishChange(() => window.dispatchEvent(new Event('resize')));
   dispF.addColor(config.display, 'letterbox').name('letterbox color');
 

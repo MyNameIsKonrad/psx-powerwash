@@ -46,8 +46,8 @@ export function updateStream(
   // partial-magnitude version of the same vector keyboard delivers as 1.
   const t = thrustIntent();
   if (t) {
-    stream.vx += t.x * config.keyboard.accel * t.mag * dt;
-    stream.vy += t.y * config.keyboard.accel * t.mag * dt;
+    stream.vx += t.x * effective.keyboardAccel * t.mag * dt;
+    stream.vy += t.y * effective.keyboardAccel * t.mag * dt;
     // Brake the perpendicular component so input direction wins quickly.
     // Perpendicular brake scales with magnitude too — feathering the stick
     // shouldn't aggressively snap perpendicular momentum.
@@ -56,9 +56,9 @@ export function updateStream(
     stream.vx -= -t.y * perp * k;
     stream.vy -=  t.x * perp * k;
     const sp = Math.hypot(stream.vx, stream.vy);
-    if (sp > config.keyboard.maxSpeed) {
-      stream.vx = stream.vx / sp * config.keyboard.maxSpeed;
-      stream.vy = stream.vy / sp * config.keyboard.maxSpeed;
+    if (sp > effective.keyboardMaxSpeed) {
+      stream.vx = stream.vx / sp * effective.keyboardMaxSpeed;
+      stream.vy = stream.vy / sp * effective.keyboardMaxSpeed;
     }
   }
 
@@ -89,13 +89,13 @@ export function applyThrowEdgeSnap(
   vx: number, vy: number, W: number, H: number,
 ): { vx: number; vy: number } {
   const speed = Math.hypot(vx, vy);
-  const min = config.stream.minThrowSpeed;
-  const max = config.stream.maxThrowSpeed;
+  const min = effective.minThrowSpeed;
+  const max = effective.maxThrowSpeed;
   const speedRatio = Math.max(0, Math.min(1, (speed - min) / (max - min)));
   const snapTan = config.edgeSnap.tan
     + speedRatio * (config.edgeSnap.tanFast - config.edgeSnap.tan);
 
-  const d = config.edgeSnap.dist;
+  const d = effective.edgeSnapDist;
   const nearTop   = stream.y < d;
   const nearBot   = stream.y > H - d;
   const nearLeft  = stream.x < d;

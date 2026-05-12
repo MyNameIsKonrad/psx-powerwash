@@ -80,12 +80,12 @@ function onUp() {
     vy = (newest.y - oldest.y) / dt;
   }
   const sp = Math.hypot(vx, vy);
-  if (sp > config.stream.maxThrowSpeed) {
-    vx = (vx / sp) * config.stream.maxThrowSpeed;
-    vy = (vy / sp) * config.stream.maxThrowSpeed;
+  if (sp > effective.maxThrowSpeed) {
+    vx = (vx / sp) * effective.maxThrowSpeed;
+    vy = (vy / sp) * effective.maxThrowSpeed;
   }
 
-  if (sp < config.stream.minThrowSpeed) {
+  if (sp < effective.minThrowSpeed) {
     // Tap-with-no-throw: nudge in a random direction so the stream doesn't sit still.
     const a = Math.random() * Math.PI * 2;
     stream.vx = Math.cos(a) * effective.freeSpeed;

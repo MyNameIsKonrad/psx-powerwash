@@ -13,7 +13,7 @@ export const grid = {
 };
 
 export function initGrid(W: number, H: number) {
-  const cs = config.grid.chunkSize;
+  const cs = effective.chunkSize;
   grid.cols = Math.ceil(W / cs);
   grid.rows = Math.ceil(H / cs);
   grid.data = new Uint8Array(grid.cols * grid.rows);
@@ -26,7 +26,7 @@ export function initGrid(W: number, H: number) {
 // inside the disc removes one HP per cell — fast scrub through 1-HP walls,
 // satisfying multi-pass scrub through higher-HP walls.
 export function damageGrid(onDestroy: (cx: number, cy: number) => void) {
-  const cs = config.grid.chunkSize;
+  const cs = effective.chunkSize;
   const r = effective.eraseRadius;
   const r2 = effective.eraseRadiusSq;
   const cMin = Math.max(0, Math.floor((stream.x - r) / cs));

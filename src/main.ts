@@ -26,11 +26,37 @@ let offsetX = 0;
 let offsetY = 0;
 
 function resize() {
-  W = config.display.virtualWidth;
-  H = config.display.virtualHeight;
-
   const winW = window.innerWidth;
   const winH = window.innerHeight;
+
+  // Pick virtual dimensions based on responsive mode.
+  const d = config.display;
+  if (d.responsiveMode === 'aspect') {
+    if (winW >= winH) {
+      d.virtualWidth  = d.referenceWidth;
+      d.virtualHeight = d.referenceHeight;
+    } else {
+      d.virtualWidth  = d.referenceHeight;
+      d.virtualHeight = d.referenceWidth;
+    }
+  } else if (d.responsiveMode === 'continuous') {
+    const refShort = Math.min(d.referenceWidth, d.referenceHeight);
+    if (winW >= winH) {
+      d.virtualHeight = refShort;
+      d.virtualWidth  = Math.round(refShort * winW / winH / 16) * 16;
+    } else {
+      d.virtualWidth  = refShort;
+      d.virtualHeight = Math.round(refShort * winH / winW / 16) * 16;
+    }
+  }
+  // 'fixed': virtualWidth/virtualHeight left as-is.
+
+  W = d.virtualWidth;
+  H = d.virtualHeight;
+
+  // Recompute scale-dependent effective values before initGrid reads chunkSize.
+  recomputeEffective(W, H);
+
   scale = Math.min(winW / W, winH / H);
   const dispW = W * scale;
   const dispH = H * scale;
@@ -134,7 +160,7 @@ function loop() {
   lastT = t;
   if (dt > 0.05) dt = 0.05;
 
-  recomputeEffective();
+  recomputeEffective(W, H);
   pollGamepad();
 
   const run = getRun();
@@ -154,7 +180,6 @@ window.addEventListener('resize', () => {
   resetStream(W, H);
 });
 resize();
-recomputeEffective();
 beginNewRun();
 lastT = performance.now();
 loop();

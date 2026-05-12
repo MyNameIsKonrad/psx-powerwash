@@ -56,9 +56,19 @@ export const config = {
   wallColor: '#6e7884', // mid slate-gray — picked so light blue splash has contrast
 
   display: {
-    // Fixed virtual resolution. The canvas is letterboxed inside the window —
-    // gameplay coordinates always run in this space, so feel is identical
-    // on a 4K monitor and a phone. 1280x720 keeps tile counts reasonable.
+    // Reference resolution: the calibration point for all px-based constants.
+    // Changing this shifts the feel baseline — only touch when re-tuning everything.
+    referenceWidth: 1280,
+    referenceHeight: 720,
+
+    // How the virtual viewport is chosen at boot and on resize.
+    //   'aspect'     — landscape → reference, portrait → reference axes swapped
+    //   'fixed'      — use virtualWidth/virtualHeight as typed (manual tuning)
+    //   'continuous' — virtual tracks window aspect; shorter edge = referenceHeight
+    responsiveMode: 'aspect' as 'aspect' | 'fixed' | 'continuous',
+
+    // Virtual play-space dimensions. In 'fixed' mode these are the source of
+    // truth; in 'aspect'/'continuous' modes resize() overwrites them each call.
     virtualWidth: 1280,
     virtualHeight: 720,
     // Background color around the letterbox bars.

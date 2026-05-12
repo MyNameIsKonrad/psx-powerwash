@@ -1,4 +1,5 @@
 import { config } from './config';
+import { effective } from './effective';
 import { stream } from './stream';
 import { grid } from './grid';
 import { tiles } from './tiles';
@@ -12,8 +13,8 @@ export function render(ctx: CanvasRenderingContext2D, W: number, H: number) {
   // Standing chunks. Per-chunk shade comes from remaining HP — at full HP
   // chunks are pure black "dirt"; partially scrubbed chunks lerp toward a
   // muddy brown so the player can see they're working through layers.
-  const cs = config.grid.chunkSize;
-  const drawSize = cs - config.grid.chunkGap;
+  const cs = effective.chunkSize;
+  const drawSize = Math.max(1, cs - config.grid.chunkGap);
   const maxHp = Math.max(1, config.grid.chunkHp | 0);
   // Endpoints of the dirt gradient. Black = fresh dirt; warm brown = nearly
   // washed off (chunk about to pop). Picked to read clearly against the
@@ -53,10 +54,10 @@ export function render(ctx: CanvasRenderingContext2D, W: number, H: number) {
 
   // Splash tiles — angular water impact. Stiff alpha: hold 0.7 for 80% of
   // life, then snap to 0 in last 20%. Smooth fade was tried and rejected.
-  ctx.lineWidth = config.splash.lineWidth;
+  ctx.lineWidth = effective.splashLineWidth;
   for (const s of splashes) {
     const k = s.age / config.splash.life;
-    const size = (config.splash.startSize + (config.splash.endSize - config.splash.startSize) * k) * s.sizeMul;
+    const size = (effective.splashStartSize + (effective.splashEndSize - effective.splashStartSize) * k) * s.sizeMul;
     const alpha = 0.7 * (k < 0.8 ? 1 : (1 - k) / 0.2);
     ctx.strokeStyle = `rgba(${config.splash.r},${config.splash.g},${config.splash.b},${alpha})`;
     ctx.save();
