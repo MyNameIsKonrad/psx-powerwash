@@ -12,7 +12,13 @@
       "Bash(git commit *)",
       "mcp__Claude_Preview__preview_start",
       "Bash(gh pr create --title 'Strip shop/HUD/meta-game — physics sandbox only' --body ' *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Skill(orientation)",
+      "Skill(orientation:*)",
+      "Bash(git stash *)",
+      "Bash(git pull *)",
+      "Skill(handoff)",
+      "Skill(handoff:*)"
     ]
   }
 }
