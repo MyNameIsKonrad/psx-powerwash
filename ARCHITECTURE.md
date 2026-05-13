@@ -1,12 +1,19 @@
-# Handoff — psx-powerwash
+# Architecture — psx-powerwash
 
-**Read this before changing anything.** This is a feel toy first; a lot of values look arbitrary but were dialed in by hand in the original `prototype.html`. The original is preserved at the repo root for reference — diff against it before assuming a value is "wrong."
+**Read this before changing anything.** When evaluating a change, the question is always: *does this serve the powerwash fantasy?* Not: "was this value tuned in the prototype?"
+
+## Core fantasy
+
+> Pressurized water stream aimed at a dirty wall. You grab the hose, drag it across the surface, throw it at an angle, feel the resistance of stubborn grime. The stream can idle against a surface. The dirt pops cleanly and definitively. It reads like human hands controlling a heavy thing.
+
+This is the acceptance criterion for every feel decision. If a change makes it feel more like that, it's right. If it makes it feel more like a physics toy or a marble game, reconsider.
+
+`prototype.html` was the source of truth for an earlier, different fantasy (bouncing marble ball). It's preserved at the repo root for reference but is **no longer the baseline**. `effective.ts` is the calibration source now.
 
 ## Live
 
 - **Deploy:** https://mynameiskonrad.github.io/psx-powerwash/
 - **Repo:** https://github.com/MyNameIsKonrad/psx-powerwash
-- **Reference prototype:** [prototype.html](prototype.html) (do not delete — this is the canonical "what good feels like" snapshot)
 
 ## Quick start
 
@@ -21,23 +28,23 @@ npm run deploy       # builds and pushes dist/ to gh-pages branch
 
 GitHub Pages is already configured to serve from the `gh-pages` branch. After `npm run deploy`, the build takes ~1–2 minutes to go live.
 
-## Current state (2026-05-11)
+## Current state (2026-05-13)
 
-Physics sandbox active on `main` (shop/HUD/meta-game stripped). Stream bounces forever, tiles pop, R resets, backtick opens lil-gui for tuning. Full-featured state preserved on `prototype-modules` branch. Next: rediscover and re-implement the non-core systems naturally.
+Physics sandbox active on `main` (shop/HUD/meta-game stripped). Stream bounces, tiles pop, R resets, backtick opens lil-gui. Full-featured state preserved on `prototype-modules` branch. Responsive sizing and physics auto-scaling landed; `effective.ts` handles all px-based calibration.
 
-## DO NOT BREAK — preserved feel
+## Feel principles — check these before changing physics
 
-These were iterated to feel right in the original prototype. If you find yourself "cleaning up" any of them, stop and read the brief.
+These are grounded in the powerwash fantasy, not in the prototype. A change that violates them needs a good reason; a change that serves the fantasy overrides them.
 
-- **Stream is always moving.** Free-flight at `freeSpeed`. Touch grabs and freezes its position; drag is 1:1 with grab offset preserved; release throws using a 180ms velocity window. **Do not lower `velWindowMs` below ~150** — finger velocity gets noisy and edge snap stops working on slow throws.
-- **DVD-bounce off all four walls** with **±2° random nudge** so trajectories never become perfectly periodic.
-- **Edge snap on release.** Tolerance scales with throw speed (`tan` slow, `tanFast` fast) — fast flicks have noisier finger velocity, so they need a more forgiving snap.
-- **Tap-with-no-throw fallback.** Release with sub-`minThrowSpeed` velocity → random direction nudge so the stream never sits still.
-- **Tile pop is instant.** No hitstop, no anticipation animation, no squash. These were tried and rejected — they made the game feel laggy.
-- **Splash blending is normal, NOT additive.** Additive made it feel neon-glowy.
-- **Splash alpha is stiff.** Hold 0.7 for 80% of life, then snap to 0. Smooth fade was tried and rejected — felt mushy.
-- **All physics is dt-based in px/sec.** Never use per-frame deltas. Safari can ramp to 120Hz mid-session and naive code doubles speeds.
-- **DPR capped at 2.** Beyond that, you pay a lot of fill cost for almost no perceptual gain on the chunky aesthetic.
+- **Destruction is instant and clean.** Chunks pop — no hitstop, anticipation, or squash. Tried and rejected; they made it feel laggy and gamey, not physical.
+- **Water looks like water.** Splash blending is normal (not additive — that looked neon). Splash alpha is stiff: hold 0.7 for 80% of life, snap to 0. Smooth fade was tried and rejected — felt mushy.
+- **Throw feel matters.** `velWindowMs` should not go below ~150 — finger velocity gets noisy and edge snap stops working. Edge snap tolerance scales with throw speed (fast flicks are noisier, need more forgiveness).
+- **The stream can stop.** A hose pressed into a surface doesn't need to keep moving. Coast-to-rest is fine; a stream sitting still against a stubborn chunk is good powerwash fantasy.
+
+## Technical constraints — do not touch without understanding why
+
+- **All physics is dt-based in px/sec.** Never use per-frame deltas. Safari can ramp to 120Hz mid-session.
+- **DPR capped at 2.** Beyond that, fill cost rises sharply with no perceptual gain on the chunky aesthetic.
 
 ## Module map
 
@@ -50,7 +57,7 @@ src/
   input.ts       pointer (touch + mouse) → grab/drag/release; cornerTap; setInputEnabled
   keyboard.ts    held-keys set, keyDir(), Esc/R handlers
   gamepad.ts     polled per frame; left stick → analog thrust, buttons → pause/restart/GUI
-  grid.ts        Uint8Array of HP per cell, damageGrid, destroyedCount
+  grid.ts        Float32Array of HP per cell (dt-based), damageGrid, destroyedCount
   tiles.ts       flying tile chunks (post-destruction physics)
   splash.ts      water-impact rectangles + bounce splash + haptic
   render.ts      all canvas drawing
@@ -114,30 +121,75 @@ These are the ones to reach for first when balancing. All in `config.ts` and exp
 - **npm cache permission.** `~/.npm` had root-owned files from a past npm bug. We use `--cache=/tmp/npm-cache-pw` as a workaround. Permanent fix is `sudo chown -R 501:20 ~/.npm` (not done — needs the user to run sudo).
 - **Vite `base`.** `vite.config.ts` has `base: '/psx-powerwash/'`. If the repo is renamed, update this and redeploy. GH Pages would 404 on assets otherwise.
 - **gh-pages branch is auto-managed.** `npm run deploy` (uses the `gh-pages` package) force-pushes `dist/` to the `gh-pages` branch. Don't edit that branch by hand.
-- **The original `prototype.html` is the source of truth for feel.** Open it in a browser side-by-side with the deployed app whenever you're worried something drifted.
+- **`prototype.html` is no longer the feel reference.** It captures an earlier fantasy (bouncing marble). The current fantasy is the powerwash stream — see top of this doc. Preserved at the repo root for historical reference.
 - **`config.tsbuildinfo` is gitignored.** TypeScript will regenerate it.
 - **Pause is gated to active runs only.** Pressing Esc on the end screen / shop is a no-op. (Currently disabled since run loop is stripped; re-enable when run loop returns.)
 - **`tsconfig.json` has `noUnusedLocals: false`.** Loosened during the rapid build-out. Tighten back to `true` once code stabilizes.
 
-## Open ideas (good for next sessions)
+## Roadmap
 
-### Soon (re-implement from scratch)
+Active multi-phase plan. Check items off as they ship. When a whole phase lands, move it under "Done" with the date. Filter every decision against the powerwash fantasy stated at the top of this doc.
 
-1. **Run loop.** `tickRun()` drains water and checks win/lose. Hook into `main.ts` loop to gate stream when water is depleted.
-2. **HUD.** Water tank + cleaned % + time. Update from the run loop. Wire show/hide via `run.state`.
-3. **End screen.** Win/lose + stats. Callback to restart run.
-4. **Shop + upgrades.** Display upgrade cards, render purchased levels, calc cost. Call `tryBuy()` on button click. Gate next run start until shop closes.
+### Phase 1 — Physics foundation (active)
 
-### Later (extend the feel toy)
+One PR. The float-HP type change ripples through several files; do it together.
 
-5. **Audio.** Web Audio synthesized impact + splash + bounce sounds. The bounce callback in `splash.ts` is the natural hook (already has haptic; add audio alongside). No assets needed.
-6. **Wall variety.** A `dirt-density` knob in init that pre-clears some cells with randomized noise/patterns. Would unlock 100s of "levels" worth of variety from one config knob. `grid.ts:initGrid` is the place.
-7. **Combo/streak system.** Track consecutive destroys within a time window; multiplier feeds into currency award. The destroy callback in `damageGrid` is the hook; UI lives in `hud.ts`.
-8. **Real upgrade effects beyond multipliers.** New mods plug into `effective.ts`. Think: pierce (continue damaging through chunks), spread (multi-cell radius shape), slow-mo on bounce (deliberate hitstop, brief and tasteful — different from the rejected gameplay hitstop).
-9. **Touch joystick option.** A virtual stick on the bottom-left when no other modality is active. Slot into `thrustIntent()` — no other physics changes.
-10. **Tune via URL params.** `?preset=stiff-feel` loads a named preset on boot. Useful for sharing playtest builds.
-11. **Bigger walls / scroll camera.** If you outgrow 1280×720 of dirty, the play area can become bigger than the camera and scroll with the stream. Significant change — touches `main.ts`, `render.ts`, input conversion. Don't pre-build until you want it.
-12. **Stricter TypeScript.** Re-enable `noUnusedLocals` and `noUnusedParameters` once iteration slows.
+- [x] **dt-based damage.** `grid.data: Uint8Array → Float32Array`. `damageGrid` deals `damageRate * dt` per frame instead of integer 1. Destroy when `hp <= 0`.
+- [x] **Render gradient.** Rewrite `colorCache` in `render.ts` — 64-step LUT keyed on `hp / maxHp` fraction.
+- [x] **`destroyedCount` comparison.** Change `d[i] === 0` to `d[i] <= 0`.
+- [x] **Config rename.** `grid.chunkHp → grid.surfaceResistance` (seconds-to-clear at default pressure). Add `grid.damageRate` (HP/sec, default 2). Updated gui.ts label.
+- [x] **Effective wiring.** Expose `damageRate` through `effective.ts` for future pressure-upgrade compatibility.
+- [x] **Drag tunable.** `config.stream.drag` (default 0.15). Applied in `updateStream` in free flight when no thrust active.
+- [x] **Remove tap-with-no-throw fallback** in `input.ts`. Sub-threshold release now rests the stream at zero velocity.
+- [x] **Keep `freeSpeed`** as a tunable; no longer applied as a floor.
+- [x] **Default 5 layers.** `grid.surfaceResistance: 5`.
+- [x] **Acceptance:** build clean; stream coasts and rests; chunks layer visibly under sustained contact; no console errors.
+
+### Phase 2 — Surface feel
+
+Builds on Phase 1. Delivers the pressure-feel exploration.
+
+- [ ] **Hardness / resist.** `config.grid.hardness` (0..1). In `damageGrid`, accumulate a repulsion vector from live chunks (weighted by `hp/maxHp` and hardness), apply as summed velocity delta after the loop (not inside — causes jitter).
+- [ ] **Expose `surfaceHardness`** through `effective.ts`.
+- [ ] **Random rotation + scale.** Add `grid.rot` and `grid.scaleFactor` Float32Arrays populated in `initGrid`. Render reads them, applies transform per cell. Collision math unchanged.
+- [ ] **Randomize button** in gui — reseeds rot/scale without touching HP.
+- [ ] **Acceptance:** sliding feels weighted; fresh chunks resist; partially-cleared surface lets the stream punch through; wall reads organic, not uniform grid.
+
+### Phase 3 — UI polish
+
+Independent of Phases 1–2.
+
+- [ ] **lil-gui regroup.** Feel / Surface / Visual / Input / Meta. Close all but Feel and Surface by default.
+- [ ] **lil-gui touch styling.** Inject CSS overrides — larger row height (~36 px), bigger font, more padding.
+- [ ] **Hide `#hint`** on touch-only devices (not just shorten text).
+- [ ] **Pause overlay:** tap-anywhere-to-resume + visible "tap to resume" hint.
+- [ ] **Aesthetic pass:** drop `backdrop-filter` blurs, flatten pill chrome, move toward industrial dark chips matching wall color.
+
+### Phase 4 — Docs cleanup
+
+10 minutes after Phase 3.
+
+- [ ] Update Tuning section below: replace `chunkHp` with `surfaceResistance`, document `drag` and `hardness`.
+- [ ] Clear stale entries from NOTES.md (sunset prototype: done; freeSpeed removal: done; powerwash framing: done).
+- [ ] BRIEF.md gets a one-line "this is historical" header.
+
+### Done
+
+**Phase 1 — 2026-05-13.** dt-based damage (Float32Array HP, frame-rate independent), coast-to-rest with drag tunable (0.15 default), tap-with-no-throw fallback removed, `chunkHp → surfaceResistance`, `damageRate` added, 5-layer default.
+
+### Parking lot (good ideas, not blocking the current arc)
+
+These are for after the physics/feel arc settles. Don't pull them into the current phases.
+
+1. **Re-implement run loop, HUD, end screen, shop.** Old code is preserved in modules; hook back into `main.ts` once feel is locked.
+2. **Audio.** Web Audio synthesized impact + splash + bounce. Hook into the `splash.ts` bounce callback (already has haptic). Natural companion to the pressure-feel work.
+3. **Wall variety.** `dirt-density` knob pre-clears cells with noise/patterns. Unlocks "levels" worth of variety from one config knob.
+4. **Combo/streak system.** Hook into the destroy callback in `damageGrid`.
+5. **Upgrade effects beyond multipliers.** Pierce, spread, deliberate slow-mo on bounce (tasteful, different from the rejected gameplay hitstop).
+6. **Touch joystick option.** Slot into `thrustIntent()` — no other physics changes.
+7. **Tune via URL params.** `?preset=stiff-feel` for sharing playtest builds.
+8. **Bigger walls / scroll camera.** Significant — defer until clearly wanted.
+9. **Stricter TypeScript.** Re-enable `noUnusedLocals` / `noUnusedParameters` once iteration slows.
 
 ## Things that have been tried and rejected — do not re-suggest
 
@@ -149,6 +201,6 @@ These are the ones to reach for first when balancing. All in `config.ts` and exp
 
 ## When in doubt
 
-1. Open `prototype.html` next to the deployed app.
-2. If they don't match, the app drifted. Check what changed against the preserved-feel list above.
-3. If the brief or this handoff disagrees with the code, the code wins (and update the docs).
+1. Re-read the **Core fantasy** at the top. Does the change in question move the build toward that, or away?
+2. Check the **Feel principles** section. A change can violate them, but it needs a fantasy-grounded reason.
+3. If this doc disagrees with the code, the code wins — update this doc.

@@ -18,6 +18,7 @@ export const effective = {
   drainMultiplier: 1,
 
   chunkSize: 22,
+  damageRate: 2,
 
   splashJitter: 14,
   splashStartSize: 12,
@@ -51,6 +52,7 @@ export function recomputeEffective(W: number, H: number) {
   effective.drainMultiplier = config.run.drainMultiplier   * m.drainMul;
 
   effective.chunkSize       = config.grid.chunkSize        * scale;
+  effective.damageRate      = config.grid.damageRate;
 
   effective.splashJitter    = config.splash.jitter         * scale;
   effective.splashStartSize = config.splash.startSize      * scale;

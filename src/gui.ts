@@ -60,6 +60,7 @@ export function setupGui(getW: () => number, getH: () => number) {
   streamF.add(config.stream, 'minThrowSpeed',   0, 400,  5).name('min throw speed');
   streamF.add(config.stream, 'velWindowMs',   100, 400,  5).name('vel window (ms)');
   streamF.add(config.stream, 'bounceNudgeRad', 0, 0.3, 0.005).name('bounce nudge (rad)');
+  streamF.add(config.stream, 'drag', 0, 1, 0.01).name('drag (0=none, 1=instant stop)');
 
   // --- Edge Snap ---
   const snapF = gui.addFolder('Edge Snap');
@@ -73,8 +74,9 @@ export function setupGui(getW: () => number, getH: () => number) {
     .onFinishChange(() => initGrid(getW(), getH()));
   gridF.add(config.grid, 'chunkGap', 0, 6, 1).name('chunk gap')
     .onFinishChange(() => initGrid(getW(), getH()));
-  gridF.add(config.grid, 'chunkHp', 1, 5, 1).name('chunk HP (layers)')
+  gridF.add(config.grid, 'surfaceResistance', 0.5, 20, 0.5).name('surface resistance (sec)')
     .onFinishChange(() => initGrid(getW(), getH()));
+  gridF.add(config.grid, 'damageRate', 0.5, 10, 0.5).name('damage rate (hp/sec)');
 
   // --- Tiles ---
   const tilesF = gui.addFolder('Tiles');

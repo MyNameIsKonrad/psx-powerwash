@@ -10,32 +10,28 @@ export function render(ctx: CanvasRenderingContext2D, W: number, H: number) {
   ctx.fillStyle = config.wallColor;
   ctx.fillRect(0, 0, W, H);
 
-  // Standing chunks. Per-chunk shade comes from remaining HP — at full HP
-  // chunks are pure black "dirt"; partially scrubbed chunks lerp toward a
-  // muddy brown so the player can see they're working through layers.
+  // Standing chunks. Shade lerps from black (fresh dirt) to warm brown
+  // (nearly cleared) based on remaining HP fraction.
   const cs = effective.chunkSize;
   const drawSize = Math.max(1, cs - config.grid.chunkGap);
-  const maxHp = Math.max(1, config.grid.chunkHp | 0);
-  // Endpoints of the dirt gradient. Black = fresh dirt; warm brown = nearly
-  // washed off (chunk about to pop). Picked to read clearly against the
-  // slate wall without becoming neon.
-  const FULL = { r: 0, g: 0, b: 0 };
-  const WORN = { r: 130, g: 86, b: 48 };
-  const colorCache: string[] = [];
-  for (let h = 1; h <= maxHp; h++) {
-    const dmg = (maxHp - h) / Math.max(1, maxHp - 1); // 0 fresh, 1 worn (only for max>1)
-    const t = maxHp === 1 ? 0 : dmg;
-    const cr = Math.round(FULL.r + (WORN.r - FULL.r) * t);
-    const cg = Math.round(FULL.g + (WORN.g - FULL.g) * t);
-    const cb = Math.round(FULL.b + (WORN.b - FULL.b) * t);
-    colorCache[h] = `rgb(${cr},${cg},${cb})`;
+  const maxHp = config.grid.surfaceResistance;
+  // 64-step LUT so we don't build a new string per visible chunk per frame.
+  const LUT = 64;
+  const colorLut: string[] = new Array(LUT + 1);
+  for (let i = 0; i <= LUT; i++) {
+    const t = i / LUT; // 0 = fresh (black), 1 = worn (brown)
+    const cr = Math.round(0   + 130 * t);
+    const cg = Math.round(0   +  86 * t);
+    const cb = Math.round(0   +  48 * t);
+    colorLut[i] = `rgb(${cr},${cg},${cb})`;
   }
   for (let r = 0; r < grid.rows; r++) {
     const rowBase = r * grid.cols;
     for (let c = 0; c < grid.cols; c++) {
       const hp = grid.data[rowBase + c];
-      if (!hp) continue;
-      ctx.fillStyle = colorCache[hp];
+      if (hp <= 0) continue;
+      const lutIdx = Math.round((1 - hp / maxHp) * LUT);
+      ctx.fillStyle = colorLut[Math.max(0, Math.min(LUT, lutIdx))];
       ctx.fillRect(c * cs, r * cs, drawSize, drawSize);
     }
   }

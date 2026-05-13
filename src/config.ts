@@ -5,16 +5,19 @@
 
 export const config = {
   stream: {
-    // Free-flight speed when not held / on tap-with-no-throw.
+    // Initial speed set on reset (also used if freeSpeed tunable is kept on).
     freeSpeed: 280,            // px/sec — 200-400 reasonable
     eraseRadius: 32,           // px — chunks inside this disc get destroyed
     maxThrowSpeed: 1800,       // hard clamp on throw flicks
-    minThrowSpeed: 120,        // below this, treat release as a stillness tap
+    minThrowSpeed: 120,        // below this, treat release as a full stop
     // Velocity sample window: do not lower below ~150ms — finger-velocity
     // becomes noisy and edge snap stops working on slow throws.
     velWindowMs: 180,
     // Random ±angle added on every wall bounce to break perfectly-periodic loops.
     bounceNudgeRad: 2 * Math.PI / 180, // 2°
+    // Velocity decay per second in free flight (0 = no drag, 1 = stop instantly).
+    // Air-hockey-like at ~0.15; heavy at ~0.6.
+    drag: 0.15,
   },
 
   edgeSnap: {
@@ -26,9 +29,11 @@ export const config = {
   grid: {
     chunkSize: 22,   // px per chunk cell
     chunkGap: 1,     // visual gap inside the cell
-    // Hits required to destroy a chunk. >1 produces a layered "scrubbing"
-    // feel — chunks lighten through the dirt palette before popping.
-    chunkHp: 1,
+    // Seconds of continuous contact to clear a chunk at default damageRate.
+    // Higher = more layers to scrub through.
+    surfaceResistance: 5,
+    // HP drained per second while stream overlaps a chunk.
+    damageRate: 2,
   },
 
   tiles: {

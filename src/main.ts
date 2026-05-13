@@ -166,7 +166,7 @@ function loop() {
   const run = getRun();
   if (run.state === 'playing' && !paused) {
     updateStream(dt, W, H, isHeld(), spawnBounceSplash);
-    damageGrid(spawnFlyingTile);
+    damageGrid(dt, spawnFlyingTile);
     updateSplashes(dt);
     updateTiles(dt, H);
   }

@@ -62,6 +62,13 @@ export function updateStream(
     }
   }
 
+  // Drag in free flight — stream coasts to rest, no freeSpeed floor.
+  if (!t) {
+    const k = Math.max(0, 1 - config.stream.drag * dt);
+    stream.vx *= k;
+    stream.vy *= k;
+  }
+
   stream.x += stream.vx * dt;
   stream.y += stream.vy * dt;
 
