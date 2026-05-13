@@ -106,14 +106,15 @@ The hint text at the bottom of the screen adapts to detected modalities (recompu
 
 These are the ones to reach for first when balancing. All in `config.ts` and exposed in lil-gui.
 
-- `stream.freeSpeed` — base wandering pace (default 280)
+- `stream.drag` — velocity decay per second in free flight (default 0.15). Increase for quicker coast-to-rest, decrease for longer glide.
 - `stream.eraseRadius` — how forgiving the stream is at hitting chunks (default 32)
 - `stream.velWindowMs` — **don't go below 150**; raise to 220 if you want a punchier release
 - `edgeSnap.tan` / `tanFast` — increase if rail-shots feel too rare
+- `grid.surfaceResistance` — seconds to clear one chunk at default pressure (default 5). Higher = tougher/more satisfying to break through.
+- `grid.hardness` — summed repulsion force from live chunks, scales proximity × hp-fraction (default 0, off). Increase to make wall push back harder; >0.3 feels aggressive.
 - `tiles.streamInherit` — >0.3 gets floppy; <0.1 looks too uniform
 - `tiles.shrink` — higher = quicker disappear, lower = longer falling debris
 - `splash.spawnHz` × `splash.life` — visible splash count is roughly product of these
-- `grid.chunkHp` — 1 keeps original feel, 2–3 is "scrub through layers"
 
 ## Gotchas
 
@@ -169,9 +170,9 @@ Independent of Phases 1–2.
 
 10 minutes after Phase 3.
 
-- [ ] Update Tuning section below: replace `chunkHp` with `surfaceResistance`, document `drag` and `hardness`.
-- [ ] Clear stale entries from NOTES.md (sunset prototype: done; freeSpeed removal: done; powerwash framing: done).
-- [ ] BRIEF.md gets a one-line "this is historical" header.
+- [x] Update Tuning section below: replace `chunkHp` with `surfaceResistance`, document `drag` and `hardness`.
+- [x] Clear stale entries from NOTES.md (sunset prototype: done; freeSpeed removal: done; powerwash framing: done).
+- [x] BRIEF.md already removed in prior commit.
 
 ### Done
 
@@ -180,6 +181,8 @@ Independent of Phases 1–2.
 **Phase 2 — 2026-05-13.** Hardness/resist tunable (summed repulsion force from live chunks, SCALE=500), random chunk rotation + scale (`grid.rot`, `grid.scaleFactor`), `reseedSurface()` + randomize button in gui.
 
 **Phase 3 — 2026-05-13.** lil-gui restructured (Feel/Surface/Visual/Input/Meta), touch-friendly CSS injected, all backdrop-filter blurs removed, buttons flattened to dark industrial chips, pause overlay tap-to-resume, hint hidden on touch via media query.
+
+**Phase 4 — 2026-05-13.** Tuning section documented (`drag`, `hardness`, `surfaceResistance`), stale NOTES.md entries cleared, historical context preserved.
 
 ### Parking lot (good ideas, not blocking the current arc)
 
