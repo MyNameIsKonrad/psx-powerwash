@@ -159,11 +159,11 @@ Builds on Phase 1. Delivers the pressure-feel exploration.
 
 Independent of Phases 1–2.
 
-- [ ] **lil-gui regroup.** Feel / Surface / Visual / Input / Meta. Close all but Feel and Surface by default.
-- [ ] **lil-gui touch styling.** Inject CSS overrides — larger row height (~36 px), bigger font, more padding.
-- [ ] **Hide `#hint`** on touch-only devices (not just shorten text).
-- [ ] **Pause overlay:** tap-anywhere-to-resume + visible "tap to resume" hint.
-- [ ] **Aesthetic pass:** drop `backdrop-filter` blurs, flatten pill chrome, move toward industrial dark chips matching wall color.
+- [x] **lil-gui regroup.** Feel / Surface / Visual / Input / Meta. Feel and Surface open; Edge Snap, Flying Tiles, others collapsed.
+- [x] **lil-gui touch styling.** CSS injected at setup — row-height 38px, font 13px, dark industrial palette matching game.
+- [x] **Hide `#hint`** on touch via CSS media query `(hover: none) and (pointer: coarse)`.
+- [x] **Pause overlay:** tap-anywhere-to-resume (pointer-events: auto on .show); "paused / tap · esc · start" copy.
+- [x] **Aesthetic pass:** all backdrop-filter blurs removed; buttons flat dark chips (border-radius 4px); palette from game wall color.
 
 ### Phase 4 — Docs cleanup
 
@@ -178,6 +178,8 @@ Independent of Phases 1–2.
 **Phase 1 — 2026-05-13.** dt-based damage (Float32Array HP, frame-rate independent), coast-to-rest with drag tunable (0.15 default), tap-with-no-throw fallback removed, `chunkHp → surfaceResistance`, `damageRate` added, 5-layer default.
 
 **Phase 2 — 2026-05-13.** Hardness/resist tunable (summed repulsion force from live chunks, SCALE=500), random chunk rotation + scale (`grid.rot`, `grid.scaleFactor`), `reseedSurface()` + randomize button in gui.
+
+**Phase 3 — 2026-05-13.** lil-gui restructured (Feel/Surface/Visual/Input/Meta), touch-friendly CSS injected, all backdrop-filter blurs removed, buttons flattened to dark industrial chips, pause overlay tap-to-resume, hint hidden on touch via media query.
 
 ### Parking lot (good ideas, not blocking the current arc)
 

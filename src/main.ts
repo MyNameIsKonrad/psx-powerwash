@@ -122,6 +122,9 @@ window.addEventListener('keydown', (e) => {
 const pauseBtn = document.getElementById('pauseBtn') as HTMLButtonElement | null;
 if (pauseBtn) pauseBtn.addEventListener('click', (e) => { e.stopPropagation(); togglePause(); });
 
+// Tap anywhere on the pause overlay to resume — critical on touch where Esc isn't available.
+pauseOverlay.addEventListener('click', togglePause);
+
 // Adaptive hint text — show only what's available on this device. The
 // gamepad branch updates dynamically because controllers can be plugged in
 // after page load.

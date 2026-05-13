@@ -19,9 +19,8 @@
     display: none;
     position: fixed; top: calc(12px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%);
     z-index: 5; gap: 14px; align-items: center;
-    background: rgba(0,0,0,0.4); padding: 8px 14px; border-radius: 999px;
-    border: 1px solid rgba(255,255,255,0.18);
-    backdrop-filter: blur(8px);
+    background: rgba(10,14,20,0.88); padding: 8px 14px; border-radius: 4px;
+    border: 1px solid rgba(110,120,132,0.2);
     pointer-events: none;
     transition: opacity 0.2s ease;
   }
@@ -41,24 +40,28 @@
 
   /* Bottom-right control cluster (cross-platform — touch and desktop both
      get visible buttons; keyboard/gamepad just shortcut to the same actions). */
-  .ctl-cluster { position: fixed; bottom: calc(12px + env(safe-area-inset-bottom)); right: 12px; z-index: 10; display: flex; gap: 8px; }
+  .ctl-cluster { position: fixed; bottom: calc(14px + env(safe-area-inset-bottom)); right: 14px; z-index: 10; display: flex; gap: 6px; }
   .ctl-cluster button {
-    background: rgba(0,0,0,0.4); color: #fff; border: 1px solid rgba(255,255,255,0.3);
-    padding: 8px 14px; border-radius: 999px; font: 500 13px -apple-system, system-ui, sans-serif;
-    backdrop-filter: blur(8px); cursor: pointer;
-    transition: opacity 0.2s ease, background 0.15s ease;
+    background: rgba(10,14,20,0.88); color: rgba(255,255,255,0.7);
+    border: 1px solid rgba(110,120,132,0.25);
+    padding: 9px 16px; border-radius: 4px;
+    font: 500 12px -apple-system, system-ui, sans-serif;
+    letter-spacing: 0.04em; cursor: pointer;
+    transition: background 0.12s ease;
   }
-  .ctl-cluster button:hover { background: rgba(0,0,0,0.55); }
+  .ctl-cluster button:hover { background: rgba(20,28,38,0.95); color: #fff; }
+  .ctl-cluster button:active { background: rgba(30,40,52,0.98); }
   body.overlay-open .ctl-cluster { opacity: 0; pointer-events: none; }
 
-  /* Controls hint (desktop only — hidden on touch via JS feature check) */
+  /* Controls hint — hidden on touch devices, shown on desktop */
   #hint {
-    position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%);
-    z-index: 5; font-size: 11px; color: rgba(255,255,255,0.45);
-    letter-spacing: 0.05em; text-transform: uppercase;
-    pointer-events: none;
+    position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
+    z-index: 5; font-size: 10px; color: rgba(255,255,255,0.3);
+    letter-spacing: 0.06em; text-transform: uppercase;
+    pointer-events: none; white-space: nowrap;
   }
   body.overlay-open #hint { opacity: 0; }
+  @media (hover: none) and (pointer: coarse) { #hint { display: none; } }
 
   /* FPS counter (debug) */
   #fps {
@@ -72,17 +75,27 @@
   /* Compatibility shim: the older #reset id retains its style via the cluster
      rule above; this block was deliberately removed when refactoring to a cluster. */
 
-  /* Pause overlay — light, fast to dismiss */
+  /* Pause overlay — tap anywhere to resume */
   #pauseOverlay {
     position: fixed; inset: 0; z-index: 15;
     display: none; align-items: center; justify-content: center;
-    background: rgba(0,0,0,0.4); backdrop-filter: blur(6px);
+    background: rgba(0,0,0,0.5);
     pointer-events: none;
+    cursor: pointer;
   }
-  #pauseOverlay.show { display: flex; }
+  #pauseOverlay.show { display: flex; pointer-events: auto; }
   #pauseOverlay .pill {
-    background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.18);
-    padding: 14px 22px; border-radius: 999px; font-size: 14px; letter-spacing: 0.04em;
+    background: #0d1117; border: 1px solid rgba(110,120,132,0.25);
+    padding: 16px 28px; border-radius: 4px;
+    text-align: center; pointer-events: none;
+  }
+  #pauseOverlay .pill .pill-title {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: rgba(255,255,255,0.5); margin-bottom: 4px;
+  }
+  #pauseOverlay .pill .pill-sub {
+    font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: rgba(255,255,255,0.25);
   }
 
   /* Modal overlays (end screen, shop) */
@@ -90,8 +103,7 @@
     position: fixed; inset: 0; z-index: 20;
     display: none;
     align-items: center; justify-content: center;
-    background: rgba(0,0,0,0.55);
-    backdrop-filter: blur(10px);
+    background: rgba(0,0,0,0.65);
   }
   .overlay.show { display: flex; }
   .panel {
@@ -156,7 +168,12 @@
 <div id="fps">— fps</div>
 <div id="hint">drag to throw · WASD/arrows to thrust · esc to pause · R to restart</div>
 
-<div id="pauseOverlay"><div class="pill">paused — esc to resume</div></div>
+<div id="pauseOverlay">
+  <div class="pill">
+    <div class="pill-title">paused</div>
+    <div class="pill-sub">tap · esc · start</div>
+  </div>
+</div>
 
 <div id="endOverlay" class="overlay">
   <div class="panel">
