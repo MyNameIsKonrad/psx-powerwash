@@ -28,11 +28,18 @@ export function render(ctx: CanvasRenderingContext2D, W: number, H: number) {
   for (let r = 0; r < grid.rows; r++) {
     const rowBase = r * grid.cols;
     for (let c = 0; c < grid.cols; c++) {
-      const hp = grid.data[rowBase + c];
+      const idx = rowBase + c;
+      const hp = grid.data[idx];
       if (hp <= 0) continue;
       const lutIdx = Math.round((1 - hp / maxHp) * LUT);
       ctx.fillStyle = colorLut[Math.max(0, Math.min(LUT, lutIdx))];
-      ctx.fillRect(c * cs, r * cs, drawSize, drawSize);
+      const sf = grid.scaleFactor[idx];
+      const half = drawSize * sf / 2;
+      ctx.save();
+      ctx.translate(c * cs + cs / 2, r * cs + cs / 2);
+      ctx.rotate(grid.rot[idx]);
+      ctx.fillRect(-half, -half, half * 2, half * 2);
+      ctx.restore();
     }
   }
 

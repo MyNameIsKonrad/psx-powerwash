@@ -34,6 +34,12 @@ export const config = {
     surfaceResistance: 5,
     // HP drained per second while stream overlaps a chunk.
     damageRate: 2,
+    // Physical resistance: live chunks push back on the stream.
+    // 0 = stream passes through freely; 1 = strong pushback from fresh grime.
+    hardness: 0,
+    // Visual surface variation — organic non-uniform look.
+    rotJitter: 0.2,    // max chunk rotation ±radians (~±11° at 0.2)
+    scaleJitter: 0.25, // how much smaller a chunk can be (0 = uniform, 0.25 = 75-100%)
   },
 
   tiles: {

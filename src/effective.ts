@@ -19,6 +19,7 @@ export const effective = {
 
   chunkSize: 22,
   damageRate: 2,
+  surfaceHardness: 0,
 
   splashJitter: 14,
   splashStartSize: 12,
@@ -53,6 +54,7 @@ export function recomputeEffective(W: number, H: number) {
 
   effective.chunkSize       = config.grid.chunkSize        * scale;
   effective.damageRate      = config.grid.damageRate;
+  effective.surfaceHardness = config.grid.hardness;
 
   effective.splashJitter    = config.splash.jitter         * scale;
   effective.splashStartSize = config.splash.startSize      * scale;

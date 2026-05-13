@@ -1,6 +1,6 @@
 import GUI from 'lil-gui';
 import { config } from './config';
-import { initGrid } from './grid';
+import { initGrid, reseedSurface } from './grid';
 import { setFpsVisible } from './hud';
 import { resetSave } from './upgrades';
 
@@ -77,6 +77,10 @@ export function setupGui(getW: () => number, getH: () => number) {
   gridF.add(config.grid, 'surfaceResistance', 0.5, 20, 0.5).name('surface resistance (sec)')
     .onFinishChange(() => initGrid(getW(), getH()));
   gridF.add(config.grid, 'damageRate', 0.5, 10, 0.5).name('damage rate (hp/sec)');
+  gridF.add(config.grid, 'hardness', 0, 1, 0.01).name('hardness (chunk pushback)');
+  gridF.add(config.grid, 'rotJitter', 0, Math.PI / 4, 0.01).name('rotation jitter (rad)');
+  gridF.add(config.grid, 'scaleJitter', 0, 0.5, 0.01).name('scale jitter');
+  gridF.add({ randomize: () => reseedSurface() }, 'randomize').name('randomize surface');
 
   // --- Tiles ---
   const tilesF = gui.addFolder('Tiles');

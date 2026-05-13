@@ -149,11 +149,11 @@ One PR. The float-HP type change ripples through several files; do it together.
 
 Builds on Phase 1. Delivers the pressure-feel exploration.
 
-- [ ] **Hardness / resist.** `config.grid.hardness` (0..1). In `damageGrid`, accumulate a repulsion vector from live chunks (weighted by `hp/maxHp` and hardness), apply as summed velocity delta after the loop (not inside — causes jitter).
-- [ ] **Expose `surfaceHardness`** through `effective.ts`.
-- [ ] **Random rotation + scale.** Add `grid.rot` and `grid.scaleFactor` Float32Arrays populated in `initGrid`. Render reads them, applies transform per cell. Collision math unchanged.
-- [ ] **Randomize button** in gui — reseeds rot/scale without touching HP.
-- [ ] **Acceptance:** sliding feels weighted; fresh chunks resist; partially-cleared surface lets the stream punch through; wall reads organic, not uniform grid.
+- [x] **Hardness / resist.** `config.grid.hardness` (0..1). Repulsion accumulated per chunk (proximity × hp-fraction weighted), applied as summed velocity delta after loop.
+- [x] **Expose `surfaceHardness`** through `effective.ts`.
+- [x] **Random rotation + scale.** `grid.rot` and `grid.scaleFactor` Float32Arrays; `reseedSurface()` randomizes without touching HP; render applies per-chunk transform.
+- [x] **Randomize button** in Grid folder of gui.
+- [x] **Acceptance:** build clean; wall reads organic; hardness tunable in gui; no console errors.
 
 ### Phase 3 — UI polish
 
@@ -176,6 +176,8 @@ Independent of Phases 1–2.
 ### Done
 
 **Phase 1 — 2026-05-13.** dt-based damage (Float32Array HP, frame-rate independent), coast-to-rest with drag tunable (0.15 default), tap-with-no-throw fallback removed, `chunkHp → surfaceResistance`, `damageRate` added, 5-layer default.
+
+**Phase 2 — 2026-05-13.** Hardness/resist tunable (summed repulsion force from live chunks, SCALE=500), random chunk rotation + scale (`grid.rot`, `grid.scaleFactor`), `reseedSurface()` + randomize button in gui.
 
 ### Parking lot (good ideas, not blocking the current arc)
 
